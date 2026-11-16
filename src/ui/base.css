@@ -1,0 +1,28 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0d0f14;
+}
+
+#jogo {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Camada de interface: não captura cliques, exceto nos componentes que pedirem. */
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
