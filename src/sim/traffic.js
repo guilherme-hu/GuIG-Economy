@@ -9,14 +9,37 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   const bikeBody = { length: 2, width: 0.8 };
   const vehicles = Array.from({ length: cfg.poolSize }, (_, id) => ({
     id, active: false, type: 'carro', model: '', x: 0, z: 0, heading: 0, speed: 0, length: 4, width: 2, braking: false,
-    edge: 0, forward: true, s: 0, lane: 0, pace: 1, runsRed: false, stuck: 0,
+    edge: 0, forward: true, s: 0, lane: 0, pace: 1, runsRed: false, stuck: 0, inNode: -1, next: -1,
   }));
+  // Um cruzamento por vez pertence a UMA faixa de chegada: quem vem das outras espera esvaziar.
+  // É isso que impede os carros de se atravessarem ao cruzar e ao virar.
+  const inside = new Int16Array(nodes.length); // veículos dentro de cada cruzamento
+  const heldBy = new Int32Array(nodes.length).fill(-1); // faixa de chegada que está com a vez
+  const lineOf = (v) => v.edge * 4 + v.lane; // duas faixas da mesma avenida não entram juntas: elas se fundiriam na saída
+
+  const canEnter = (nodeId, v) => inside[nodeId] === 0 || heldBy[nodeId] === lineOf(v);
+  function enter(v, nodeId) {
+    if (inside[nodeId]++ === 0) heldBy[nodeId] = lineOf(v);
+    v.inNode = nodeId;
+  }
+  function leave(v) {
+    if (v.inNode < 0) return;
+    if (--inside[v.inNode] <= 0) {
+      inside[v.inNode] = 0;
+      heldBy[v.inNode] = -1;
+    }
+    v.inNode = -1;
+  }
+  function remove(v) {
+    leave(v);
+    v.active = false;
+  }
 
   function step(dt, focus) {
     spawn(focus);
     for (const v of vehicles) {
       if (!v.active) continue;
-      if (Math.hypot(v.x - focus.x, v.z - focus.z) > cfg.despawn) v.active = false;
+      if (Math.hypot(v.x - focus.x, v.z - focus.z) > cfg.despawn) remove(v);
       else drive(v, dt, focus);
     }
   }
@@ -35,6 +58,14 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
     v.braking = target < v.speed - 0.5;
     v.speed = target < v.speed ? Math.max(target, v.speed - cfg.hardBrake * dt) : Math.min(target, v.speed + cfg.accel * dt);
     v.s += v.speed * dt;
+    if (v.inNode === endNode) {
+      // já está cruzando
+    } else if (v.s >= stopAt) {
+      leave(v);
+      enter(v, endNode);
+    } else if (v.inNode >= 0 && v.s > nodes[v.inNode].radius + v.length / 2) {
+      leave(v); // saiu do cruzamento anterior
+    }
     if (v.s >= edge.length) turnAt(v, endNode, edge.length);
     if (v.active) place(v, 1 - Math.exp(-cfg.smoothing * dt));
     unstick(v, dt, focus);
@@ -46,9 +77,23 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
     if (light === 'vermelho') return true;
     // No amarelo para quem consegue parar; quem está quase parado na linha não arranca. Os 'furões' passam.
     if (light === 'amarelo') return !v.runsRed && (v.speed < cfg.crawlSpeed || (v.speed * v.speed) / (2 * cfg.hardBrake) < stopAt - v.s);
-    if (light === 'verde') return false;
-    const node = nodes[nodeId];
-    return vehicles.some((w) => w.active && w.edge !== v.edge && Math.hypot(w.x - node.x, w.z - node.z) < node.radius);
+    return !canEnter(nodeId, v) || !exitClear(v, nodeId);
+  }
+
+  /** Para onde o veículo vai ao sair deste cruzamento (sorteado uma vez; beco sem saída: volta). */
+  function nextEdge(v, nodeId) {
+    if (v.next >= 0) return v.next;
+    const options = nodes[nodeId].edges.filter((id) => id !== v.edge && graph.canTravel(id, nodeId));
+    return (v.next = options.length ? rng.pick(options) : v.edge);
+  }
+
+  /** Só entra no cruzamento se couber do outro lado: fila na saída não pode travar o cruzamento. */
+  function exitClear(v, nodeId) {
+    const next = nextEdge(v, nodeId);
+    const forward = edges[next].a === nodeId;
+    const lane = Math.min(v.lane, edges[next].lanes - 1);
+    const room = nodes[nodeId].radius + v.length + cfg.followGap;
+    return !vehicles.some((w) => w.active && w !== v && w.edge === next && w.forward === forward && w.lane === lane && w.s - w.length / 2 < room);
   }
 
   /** Distância até o obstáculo mais próximo no corredor à frente (outro veículo ou a moto). */
@@ -65,19 +110,24 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
       if (Math.abs(dx * fz - dz * fx) > (v.width + body.width) / 2) return;
       gap = Math.min(gap, along - (v.length + body.length) / 2);
     };
-    for (const w of vehicles) if (w.active && w !== v) check(w, w);
+    for (const w of vehicles) {
+      if (!w.active || w === v) continue;
+      check(w, w);
+      // Na mesma faixa vale a distância ao longo da via: numa curva o corredor reto não enxerga quem está à frente.
+      if (w.edge === v.edge && w.forward === v.forward && w.lane === v.lane && w.s > v.s) gap = Math.min(gap, w.s - v.s - (v.length + w.length) / 2);
+    }
     check(focus, bikeBody);
     return gap;
   }
 
   function turnAt(v, nodeId, travelled) {
-    const options = nodes[nodeId].edges.filter((id) => id !== v.edge && graph.canTravel(id, nodeId));
-    const next = options.length ? rng.pick(options) : v.edge; // beco sem saída: volta
-    if (!graph.canTravel(next, nodeId)) return (v.active = false);
+    const next = nextEdge(v, nodeId);
+    v.next = -1;
+    if (!graph.canTravel(next, nodeId)) return remove(v);
     v.edge = next;
     v.forward = edges[next].a === nodeId;
     v.s -= travelled;
-    v.lane = rng.int(0, edges[next].lanes - 1);
+    v.lane = Math.min(v.lane, edges[next].lanes - 1);
   }
 
   /** Aproxima a posição desenhada do ponto ideal na faixa; `k = 1` encaixa de vez. */
@@ -96,7 +146,7 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   /** Veículo travado há muito tempo e longe do jogador some, para um nó cego não virar engarrafamento eterno. */
   function unstick(v, dt, focus) {
     v.stuck = v.speed < 0.2 ? v.stuck + dt : 0;
-    if (v.stuck > cfg.stuckTime && Math.hypot(v.x - focus.x, v.z - focus.z) > cfg.stuckMinDistance) v.active = false;
+    if (v.stuck > cfg.stuckTime && Math.hypot(v.x - focus.x, v.z - focus.z) > cfg.stuckMinDistance) remove(v);
   }
 
   function spawn(focus) {
@@ -105,16 +155,17 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
     // ponytail: sorteia vias da cidade inteira até cair no anel em volta do jogador (~6% de acerto por tentativa).
     for (let attempt = 0; attempt < cfg.spawnTries; attempt++) {
       const edge = rng.pick(edges);
-      const t = rng.next();
-      graph.pointOnEdge(edge.id, t, 0, point);
+      const t = rng.next() * cfg.spawnSpan; // nunca nasce em cima de um cruzamento
+      const forward = edge.oneWay || rng.chance(0.5);
+      graph.pointOnEdge(edge.id, forward ? t : 1 - t, 0, point);
       const distance = Math.hypot(point.x - focus.x, point.z - focus.z);
       if (distance < cfg.spawnMin || distance > cfg.spawnMax) continue;
       if (vehicles.some((w) => w.active && Math.hypot(w.x - point.x, w.z - point.z) < cfg.spawnClearance)) continue;
       Object.assign(v, rng.pick(cfg.fleet), {
-        active: true, edge: edge.id, forward: edge.oneWay || rng.chance(0.5), lane: rng.int(0, edge.lanes - 1),
-        pace: 1 + rng.range(-cfg.speedVariance, cfg.speedVariance), runsRed: rng.chance(cfg.runRedShare), stuck: 0,
+        active: true, edge: edge.id, forward, lane: rng.int(0, edge.lanes - 1),
+        pace: 1 + rng.range(-cfg.speedVariance, cfg.speedVariance), runsRed: rng.chance(cfg.runRedShare), stuck: 0, inNode: -1, next: -1,
       });
-      v.s = (v.forward ? t : 1 - t) * edge.length * cfg.spawnSpan; // nunca nasce em cima de um cruzamento
+      v.s = t * edge.length;
       v.speed = 0; // nasce parado: longe da vista, e nunca em cima de um sinal vermelho sem espaço para frear
       place(v, 1);
       return;

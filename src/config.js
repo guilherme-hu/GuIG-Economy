@@ -118,11 +118,11 @@ export const config = {
   },
 
   traffic: {
-    poolSize: 50,
-    spawnMin: 120,
-    spawnMax: 260,
-    spawnTries: 3, // sorteios de via por passo
-    spawnClearance: 15, // m livres em volta do ponto de nascimento
+    poolSize: 110,
+    spawnMin: 90,
+    spawnMax: 240,
+    spawnTries: 8, // sorteios de via por passo
+    spawnClearance: 10, // m livres em volta do ponto de nascimento
     despawn: 320,
     speedVariance: 0.35, // ±35% do limite da via: uns voam, outros empacam
     runRedShare: 0.1, // fração que fura o amarelo
