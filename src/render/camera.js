@@ -47,3 +47,36 @@ export function createAerialCamera({ size, focus, canvas, interactive, pose }) {
     },
   };
 }
+
+const CHASE = { back: 6.2, height: 2.9, ahead: 5, lookHeight: 1.1, follow: 5, fov: 58, fovBoost: 16, far: 1600 };
+
+/** Câmera em 3ª pessoa: atrás e acima da moto, com mola na direção e FOV que abre com a velocidade. */
+export function createChaseCamera({ bike, maxSpeed }) {
+  const camera = new THREE.PerspectiveCamera(CHASE.fov, 1, 0.3, CHASE.far);
+  let heading = bike.heading;
+
+  return {
+    camera,
+    resize(aspect) {
+      camera.aspect = aspect;
+      camera.updateProjectionMatrix();
+    },
+    /** Sem mola: usar depois de teleportar. */
+    snap() {
+      heading = bike.heading;
+    },
+    update(dt) {
+      const delta = Math.atan2(Math.sin(bike.heading - heading), Math.cos(bike.heading - heading));
+      heading += delta * Math.min(1, CHASE.follow * dt);
+      const dx = Math.cos(heading);
+      const dz = Math.sin(heading);
+      camera.position.set(bike.x - dx * CHASE.back, CHASE.height, bike.z - dz * CHASE.back);
+      camera.lookAt(bike.x + dx * CHASE.ahead, CHASE.lookHeight, bike.z + dz * CHASE.ahead);
+      const fov = CHASE.fov + CHASE.fovBoost * Math.min(1, Math.abs(bike.speed) / maxSpeed);
+      if (Math.abs(fov - camera.fov) > 0.05) {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
+    },
+  };
+}

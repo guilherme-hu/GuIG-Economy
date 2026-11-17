@@ -67,21 +67,29 @@ export const config = {
   bike: {
     maxSpeed: kmh(95),
     reverseSpeed: kmh(8),
-    accel: 6.2, // ~0–60 km/h em 3 s
+    accel: 7.5, // ~0–60 km/h em 3 s
     brake: 11,
     hardBrake: 19,
     drag: 0.35,
-    steerRate: 2.6, // rad/s parado; cai com a velocidade
-    steerSpeedFalloff: kmh(60),
-    maxLean: 0.55,
+    steerRate: 2.4, // rad/s em baixa velocidade
+    steerFullSpeed: 2, // abaixo disso a moto gira menos (parada não gira)
+    steerResponse: 7, // quão rápido o guidão segue a tecla
+    maxLateralAccel: 13, // limita a curva em alta velocidade (m/s²)
+    maxLean: 0.6,
+    leanResponse: 3.5,
     radius: 0.55,
-    wallBounce: 0.2, // fração da velocidade que sobra ao bater em prédio
+    offRoadMargin: 3.2, // calçada: até onde dá para sair do asfalto
+    bridgeMargin: 0.4,
+    wallBounce: 0.2, // fração da velocidade que sobra numa batida de frente em prédio
+    wallHitMinSpeed: 3,
+    wallDeflect: 0.12, // rad: desvio do guidão ao raspar na parede
   },
 
   signals: {
     green: 9,
     yellow: 2.2,
     allRed: 1,
+    offsetStep: 0.618, // defasagem entre nós de ids consecutivos, em fração do ciclo (razão áurea espalha bem)
   },
 
   traffic: {
@@ -135,6 +143,16 @@ export const config = {
     acceptanceWindow: 10,
     fuelPerKm: 0.35,
     bikeRentPerDay: 40,
+    // R$/hora do extrato: um turno (shift.duration segundos de jogo) representa uma jornada de
+    // shiftHours horas reais, para o número ser comparável com a vida real.
+    shiftHours: 10,
+    get shiftDuration() {
+      return config.shift.duration;
+    },
+    // atraso (s) em que a perda de nota chega a ratingLateMax; além disso o pedido é cancelado
+    get ratingLateFullAt() {
+      return config.jobs.cancelAfterLate;
+    },
   },
 
   shift: {
