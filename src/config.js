@@ -131,13 +131,14 @@ export const config = {
     crawlSpeed: 3, // m/s: abaixo disso conta como parado na linha
     spawnSpan: 0.6, // nasce nos primeiros 60% da via
     junctionSpeed: kmh(45), // velocidade com que atravessam cruzamentos
+    rerouteAfter: 3, // s esperando a saída liberar antes de escolher outra rua
     junctionHold: 6, // s em que uma faixa pode mandar carros seguidos num cruzamento
     accel: 5,
     brake: 6, // desaceleração com que planejam a parada
     hardBrake: 12,
     smoothing: 8, // quão rápido a posição desenhada segue a faixa (suaviza as curvas)
     stuckTime: 10,
-    stuckMinDistance: 40,
+    stuckMinDistance: 250, // só some longe, fora da vista (além de onde os carros nascem)
     // Outros entregadores: andam acima do limite, costuram no corredor e furam sinal.
     motoShare: 0.22, // fração do trânsito que é moto
     moto: { type: 'moto', model: 'moto', length: 2, width: 0.8, reckless: true },

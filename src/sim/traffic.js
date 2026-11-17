@@ -8,7 +8,7 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   const point = { x: 0, z: 0 };
   const bikeBody = { length: 2, width: 0.8 };
   const vehicles = Array.from({ length: cfg.poolSize }, (_, id) => ({
-    id, active: false, type: 'carro', model: '', x: 0, z: 0, heading: 0, speed: 0, length: 4, width: 2, braking: false,
+    id, active: false, type: 'carro', model: '', x: 0, z: 0, heading: 0, speed: 0, length: 4, width: 2,
     edge: 0, forward: true, s: 0, lane: 0, pace: 1, runsRed: false, reckless: false, stuck: 0, inNode: -1, next: -1,
   }));
   // Um cruzamento por vez pertence a UMA faixa de chegada: quem vem das outras espera esvaziar.
@@ -65,7 +65,6 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
     // Chega no cruzamento em velocidade de curva: sem isso entraria a 100 km/h numa rua curta com sinal fechado.
     const cruise = Math.min(edge.speedLimit * v.pace, Math.sqrt(cfg.junctionSpeed ** 2 + 2 * cfg.brake * Math.max(0, stopAt - v.s)));
     const target = Math.min(cruise, Math.sqrt(2 * cfg.brake * Math.max(0, free)));
-    v.braking = target < v.speed - 0.5;
     v.speed = target < v.speed ? Math.max(target, v.speed - cfg.hardBrake * dt) : Math.min(target, v.speed + cfg.accel * dt);
     v.s += v.speed * dt;
     if (wait) v.s = Math.min(v.s, stopAt); // a linha de retenção não deixa "vazar" para dentro do cruzamento
@@ -89,7 +88,11 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
     if (light === 'amarelo' && stopsOnYellow) return true;
     if (v.reckless) return !canEnter(nodeId, v); // moto fura o sinal e não espera a saída, mas não passa por dentro de um carro
     // ...mas ninguém entra num cruzamento ocupado: dois carros se cruzando lá dentro travariam um ao outro.
-    return !canEnter(nodeId, v) || !exitClear(v, nodeId);
+    if (!canEnter(nodeId, v)) return true;
+    if (exitClear(v, nodeId)) return false;
+    // Saída lotada há tempo: desiste e sorteia outra rua. Sem isso, filas que dão a volta no quarteirão travam em ciclo.
+    if (v.stuck > cfg.rerouteAfter) v.next = -1;
+    return true;
   }
 
   /** Para onde o veículo vai ao sair deste cruzamento (sorteado uma vez; beco sem saída: volta). */
@@ -122,13 +125,18 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
       if (Math.abs(dx * fz - dz * fx) > ((v.width + body.width) / 2) * cfg.corridorFit) return;
       gap = Math.min(gap, along - (v.length + body.length) / 2);
     };
+    const edge = edges[v.edge];
+    const node = v.inNode >= 0 ? v.inNode : v.forward ? edge.b : edge.a;
     for (const w of vehicles) {
       if (!w.active || w === v) continue;
       if (Math.cos(w.heading - v.heading) < -0.5) continue; // quem vem no sentido contrário está na outra mão
+      // Só conta quem está no caminho: a mesma rua, a rua de saída ou o mesmo cruzamento. Um carro esperando
+      // em outra entrada pode estar "à frente" em linha reta num cruzamento torto — frear por ele trava os dois.
+      if (w.edge !== v.edge && w.edge !== v.next && w.inNode !== node) continue;
       check(w, w);
       // Na mesma faixa vale a distância ao longo da via: numa curva o corredor reto não enxerga quem está à frente.
-      // A moto não respeita a fila dos carros, só a das outras motos no corredor.
-      if ((!v.reckless || w.reckless) && w.edge === v.edge && w.forward === v.forward && w.lane === v.lane && w.s > v.s) gap = Math.min(gap, w.s - v.s - (v.length + w.length) / 2);
+      // Fila só entre iguais: carro atrás de carro, moto atrás de moto. A moto ao lado, no corredor, não é fila.
+      if (v.reckless === w.reckless && w.edge === v.edge && w.forward === v.forward && w.lane === v.lane && w.s > v.s) gap = Math.min(gap, w.s - v.s - (v.length + w.length) / 2);
     }
     check(focus, bikeBody);
     return gap;

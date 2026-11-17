@@ -85,24 +85,24 @@ export function createBike(config, { city, graph }, spawn) {
     const road = graph.nearestEdge(bike.x, bike.z);
     bike.road = road;
     if (!road) return;
-    const edge = city.edges[road.edge];
-    bike.onSidewalk = road.dist > edge.halfWidth + bike.radius && !insideJunction(edge);
     let wall = road.edge;
     let dist = road.dist;
     let t = road.t;
     let limit = limitOf(wall);
-    if (dist <= limit) return;
+    let onAsphalt = dist <= city.edges[wall].halfWidth + bike.radius;
 
     // A via de eixo mais próximo nem sempre é a que a moto está usando: na boca de uma ponte, onde uma rua
     // chega numa avenida, ou com uma rua correndo ao lado de uma avenida larga. Vale a que deixa a moto mais para dentro.
     for (const other of graph.edgesAround(bike.x, bike.z)) {
       graph.projectOnEdge(other, bike.x, bike.z, probe);
+      if (probe.dist <= city.edges[other].halfWidth + bike.radius) onAsphalt = true;
       if (probe.dist - limitOf(other) >= dist - limit) continue;
       wall = other;
       dist = probe.dist;
       t = probe.t;
       limit = limitOf(other);
     }
+    bike.onSidewalk = !onAsphalt && !insideJunction(city.edges[wall]);
     if (dist <= limit) return;
 
     // Empurra de volta para o limite, ao longo da normal que sai do eixo da via.

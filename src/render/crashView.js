@@ -6,7 +6,7 @@ const LOOK = {
   flash: { color: 0xffa436, radius: 3.2, time: 0.45 },
   debris: { count: 16, size: [0.06, 0.2], colors: [0xc8ff2e, 0xff5a4e, 0x1b1d26, 0x9aa0ad], speed: [3, 9], lift: [4, 10] },
   rider: { forward: 0.55, minForward: 6, lift: 8.5, spin: 9, rest: 0.25 },
-  bike: { forward: 0.3, fall: 6, slide: 4 },
+  bike: { forward: 0.3, fall: 6, slide: 16 }, // slide: desaceleração do escorregão, m/s²
 };
 
 /** `root` é o grupo da moto (frente em +X); `tilt` leva a moto; `getRider` devolve o piloto quando já carregou. */
@@ -65,7 +65,7 @@ export function createCrashView({ root, tilt, getRider }) {
       // A moto tomba de lado e escorrega até parar.
       tilt.rotation.x = Math.min(Math.PI / 2, tilt.rotation.x + LOOK.bike.fall * dt);
       tilt.position.x += slide * dt;
-      slide = Math.max(0, slide - LOOK.bike.slide * dt * 4);
+      slide = Math.max(0, slide - LOOK.bike.slide * dt);
 
       for (const body of bodies) {
         if (body.done) continue;

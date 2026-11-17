@@ -96,11 +96,8 @@ events.on('job:delivered', ({ pay, tip, lateBy }) => {
 });
 events.on('job:cancelled', () => phone.notify(copy.notify.cancelled()));
 events.on('offer:expired', () => phone.notify(copy.notify.offerExpired()));
-events.on('fine', ({ kind, amount }) => {
-  if (kind === 'sinal') return phone.notify(copy.notify.fineRedLight(amount));
-  const notice = copy.notify.fineWrongWay(amount);
-  phone.notify(kind === 'calcada' ? { ...notice, text: 'Trânsito na calçada. O valor já saiu do seu saldo.' } : notice);
-});
+const fineNotice = { sinal: copy.notify.fineRedLight, contramao: copy.notify.fineWrongWay, calcada: copy.notify.fineSidewalk };
+events.on('fine', ({ kind, amount }) => phone.notify(fineNotice[kind](amount)));
 events.on('crash', ({ relSpeed }) => {
   sim.phase = 'acidente'; // a simulação para; o efeito roda e só depois vem a tela
   bikeView.crash(relSpeed);
@@ -112,8 +109,6 @@ events.on('crash', ({ relSpeed }) => {
 function showAccident() {
   sim.phase = 'fim';
   hud.setVisible(false);
-  warning.show('');
-  phone.close();
   const { perHour } = economy.statement();
   const stats = { days: economy.career.days + 1, deliveries: economy.career.deliveries + economy.day.deliveries, earned: economy.money, perHour };
   screens.show('fim', { reason: 'acidente', stats });
@@ -132,6 +127,7 @@ function startShift() {
   economy.startDay();
   screens.hide();
   hud.setVisible(true);
+  phone.open();
 }
 function resume() {
   screens.hide();
@@ -147,12 +143,12 @@ input.onAction((action) => {
 });
 events.on('bump', () => hud.flash('batida'));
 events.on('fine', () => hud.flash('radar'));
-events.on('damage', ({ amount }) => phone.notify({ ...copy.notify.fineWrongWay(amount), title: `Conserto: R$ ${amount},00`, text: 'Você danificou a moto. O conserto é por sua conta.' }));
+events.on('damage', ({ amount }) => phone.notify(copy.notify.repair(amount)));
 
 /** Aviso do alto da tela: contador da calçada tem prioridade sobre o radar à frente. */
 function updateWarning() {
   if (rules.sidewalkLeft !== null) {
-    return warning.show(`Você está na calçada: infração de trânsito. Multa em ${rules.sidewalkLeft.toFixed(1).replace('.', ',')} s`);
+    return warning.show(`Você está na calçada: infração de trânsito. Multa em ${rules.sidewalkLeft.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} s`);
   }
   const camera = rules.cameraAhead();
   warning.show(camera ? `Radar de sinal vermelho em ${meters(camera.distance)}` : '', 'radar');

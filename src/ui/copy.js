@@ -138,6 +138,16 @@ export const copy = {
       title: `Multa: ${money(amount)}`,
       text: 'Contramão. O valor já saiu do seu saldo.',
     }),
+    fineSidewalk: (amount) => ({
+      kind: 'multa',
+      title: `Multa: ${money(amount)}`,
+      text: 'Trânsito na calçada. O valor já saiu do seu saldo.',
+    }),
+    repair: (amount) => ({
+      kind: 'multa',
+      title: `Conserto: ${money(amount)}`,
+      text: 'Você danificou a moto. O conserto é por sua conta.',
+    }),
     tip: (amount) => ({
       kind: 'gorjeta',
       title: `Gorjeta de ${money(amount)}! 🎉`,
