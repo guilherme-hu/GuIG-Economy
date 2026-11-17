@@ -25,6 +25,7 @@ export function createEconomy(cfg, events) {
     acceptance: 1,
     day: { gross: 0, tips: 0, fuel: 0, rent: 0, fines: 0, deliveries: 0, late: 0, cancelled: 0, distance: 0, seconds: 0 },
     career: { days: 0, deliveries: 0, earned: 0, seconds: 0 },
+    hoursPerSecond: cfg.shiftHours / cfg.shiftDuration, // horas de jornada real por segundo de jogo
     startDay,
     tick,
     payDelivery,
@@ -117,7 +118,7 @@ export function createEconomy(cfg, events) {
 
   function statement() {
     const net = round2(day.gross + day.tips - day.fuel - day.rent - day.fines);
-    const hours = (day.seconds * cfg.shiftHours) / cfg.shiftDuration;
+    const hours = day.seconds * eco.hoursPerSecond;
     return {
       gross: day.gross,
       tips: day.tips,

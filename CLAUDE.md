@@ -128,8 +128,11 @@ createJobs({ city, graph, rng, events, economy, config: config.jobs }) → {
 // sim/rules.js      colisão moto×veículo, multa de sinal vermelho e contramão
 createRules({ city, graph, signals, traffic, bike, economy, events, config: config.rules }) → { step(dt) }
 
-// sim/shift.js      menu → turno → extrato → (próximo dia | fim)
-createShift({ economy, jobs, events, config: config.shift }) → { phase, day, timeLeft, step(dt), start(), nextDay() }
+// sim/shift.js      relógio do turno, contas do dia e fins de jogo; o turno só fecha sem entrega em andamento
+createShift({ economy, jobs, events, config: config.shift }) → {
+  day, timeLeft, bills, missedDays, running,
+  start(), step(dt), nextDay() /* ou despejo */, gameOver(reason),   // emite shift:start, shift:end, game:over
+}
 ```
 
 ### Eventos

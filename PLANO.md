@@ -130,7 +130,7 @@ Cada marco é uma issue no GitHub e termina com o jogo rodando, verificado confo
   *Aceite:* via `__game`: aceitar oferta, ligar autopilot, e o dinheiro em `state()` aumenta sozinho após a entrega.
 - [x] **M4 — Trânsito e semáforos.** (#5) Veículos, semáforos, colisão ⇒ game over, multa por vermelho e contramão.
   *Aceite:* screenshot com trânsito parado num vermelho; teleporte para dentro de um carro em movimento dá game over; atravessar vermelho desconta dinheiro; fps ≥ 50 com o pool cheio.
-- [ ] **M5 — Dia completo.** (#6) Turno, nota, aceitação, custos, extrato, progressão de dias, os 3 fins de jogo, menu, pausa, tutorial.
+- [x] **M5 — Dia completo.** (#6) Turno, nota, aceitação, custos, extrato, progressão de dias, os 3 fins de jogo, menu, pausa, tutorial.
   *Aceite:* com `setTimeScale` alto + autopilot, um turno inteiro roda até o extrato e o extrato fecha; cada fim de jogo é alcançável e reiniciável.
 - [ ] **M6 — Sensação.** (#7) Som, entardecer→noite, faróis, FOV/tremor, flash de radar, partículas de freada, polimento visual do celular e das telas.
   *Aceite:* screenshots de dia e de noite bonitos; nenhum texto estourando no celular em 1366×768.

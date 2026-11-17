@@ -21,6 +21,7 @@ import { createJobs } from './sim/jobs.js';
 import { createSignals } from './sim/signals.js';
 import { createTraffic } from './sim/traffic.js';
 import { createRules } from './sim/rules.js';
+import { createShift } from './sim/shift.js';
 import { createTrafficView, createSignalsView } from './render/trafficView.js';
 import { nextManeuver } from './sim/navigation.js';
 import { createMarkersView } from './render/markersView.js';
@@ -51,7 +52,8 @@ const signals = createSignals(city, config.signals);
 const traffic = createTraffic({ city, graph, signals, rng: rng.fork('trânsito'), config: config.traffic });
 const rules = createRules({ city, signals, traffic, bike, economy, events, rng: rng.fork('radares'), config: config.rules });
 const pilot = createAutopilot({ city, graph, bike, config: config.autopilot });
-const sim = { time: 0, phase: 'menu', city, graph, bike, pilot, economy, jobs, signals, traffic, rules, nav: null, autopilot: false };
+const shift = createShift({ economy, jobs, events, config: config.shift });
+const sim = { time: 0, phase: 'menu', city, graph, bike, pilot, economy, jobs, signals, traffic, rules, shift, nav: null, autopilot: false };
 
 /** Com o piloto ligado, ele vai sozinho ao destino da corrida ativa (restaurante, depois cliente). */
 let pilotTarget = null;
@@ -103,30 +105,36 @@ events.on('crash', ({ relSpeed }) => {
   warning.show(null);
   phone.close();
   hud.flash('batida');
-  setTimeout(showAccident, config.rules.crashScreenDelay * 1000);
+  setTimeout(() => shift.gameOver('acidente'), config.rules.crashScreenDelay * 1000);
 });
-function showAccident() {
-  sim.phase = 'fim';
+
+/** Sai da rua: some o HUD, o celular e os avisos, e entra uma tela cheia. */
+function leaveStreet(phase, screen, data) {
+  sim.phase = phase;
   hud.setVisible(false);
-  const { perHour } = economy.statement();
-  const stats = { days: economy.career.days + 1, deliveries: economy.career.deliveries + economy.day.deliveries, earned: economy.money, perHour };
-  screens.show('fim', { reason: 'acidente', stats });
+  warning.show(null);
+  phone.close();
+  screens.show(screen, data);
 }
-const screens = createScreens(ui, { onStart: firstShift, onResume: resume, onNextDay: startShift, onRestart: () => location.reload() });
+events.on('shift:end', (data) => leaveStreet('extrato', 'extrato', data));
+events.on('game:over', (data) => leaveStreet('fim', 'fim', data));
+events.on('shift:start', () => {
+  sim.phase = 'turno';
+  bike.reset(spawn); // todo dia começa na porta de casa
+  chase.snap();
+  screens.hide();
+  hud.setVisible(true);
+  phone.open();
+});
+
+const screens = createScreens(ui, { onStart: firstShift, onResume: resume, onNextDay: () => shift.nextDay(), onRestart: () => location.reload() });
 hud.setVisible(false);
 if (!debugMap) screens.show('menu');
 
 /** Primeiro turno: passa pelas instruções (a não ser que o jogador já as tenha dispensado). */
 function firstShift() {
   screens.hide();
-  tutorial.show(startShift);
-}
-function startShift() {
-  sim.phase = 'turno';
-  economy.startDay();
-  screens.hide();
-  hud.setVisible(true);
-  phone.open();
+  tutorial.show(() => shift.start());
 }
 function resume() {
   screens.hide();
@@ -179,6 +187,7 @@ const loop = createLoop({
     signals.step(dt);
     traffic.step(dt, bike);
     rules.step(dt);
+    shift.step(dt);
   },
   render(alpha, frameDt) {
     const riding = (sim.phase === 'turno' || sim.phase === 'acidente') && !debugMap;
@@ -207,7 +216,7 @@ window.__game = {
   input,
   loop,
   view: { stage, cityView, aerial, chase, bikeView },
-  start: startShift,
+  start: () => shift.start(),
   phone,
   /** Liga ou desliga o piloto automático: ligado, ele faz sozinho a corrida ativa. */
   autopilot(on) {
@@ -225,6 +234,7 @@ window.__game = {
   state: () => ({
     time: sim.time,
     phase: sim.phase,
+    shift: { day: shift.day, timeLeft: shift.timeLeft, bills: shift.bills, missedDays: shift.missedDays },
     bike: { x: bike.x, z: bike.z, heading: bike.heading, kmh: bike.speed * 3.6, road: bike.road?.edge },
     autopilot: { active: pilot.active, arrived: pilot.arrived },
     money: economy.money,
