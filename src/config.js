@@ -162,19 +162,20 @@ export const config = {
   rules: {
     crashSpeed: kmh(40), // impacto acima disso = acidente, fim de jogo
     damageSpeed: kmh(20), // entre isso e o acidente: a moto quebra e o conserto sai do seu bolso
-    repairCost: 80, // manete, retrovisor, pisca: o dano é do entregador mesmo com moto alugada
+    repairCost: 30, // manete, retrovisor, pisca: o dano é do entregador mesmo com moto alugada (escala do jogo)
     crashScreenDelay: 2.4, // s de efeito do acidente antes da tela de fim
     repairCooldown: 2, // s: raspar na parede não cobra um conserto por passo
     cameraShare: 0.3, // fração dos cruzamentos com semáforo que têm radar
     cameraWarnDistance: 180, // m: o GPS avisa do radar a partir daqui
     cameraWarnCone: 0.8, // cosseno do ângulo à frente em que o radar conta
-    // Multas com os valores reais do CTB (2025): gravíssima = R$ 293,47; na calçada, ×3 (art. 193).
-    fineRedLight: 293.47, // art. 208
-    fineWrongWay: 293.47, // art. 186, II
+    // Multas a 1/10 do valor real do CTB (2025), mantendo a proporção entre elas: gravíssima = R$ 293,47; calçada, ×3.
+    // No valor real, uma multa apagaria dias de trabalho e o jogo acabaria na primeira; a 1/10, ela come o lucro do dia.
+    fineRedLight: 29.35, // art. 208 (real: R$ 293,47)
+    fineWrongWay: 29.35, // art. 186, II (real: R$ 293,47)
     fineMinSpeed: 2, // m/s: abaixo disso não conta como furar sinal nem contramão
     wrongWayGrace: 1.5,
     bumpKeep: 0.4, // fração da velocidade que sobra num toque leve em veículo
-    fineSidewalk: 880.41, // art. 193
+    fineSidewalk: 88.04, // art. 193 (real: R$ 880,41)
     sidewalkGrace: 3, // segundos na calçada antes da multa (contador na tela)
     sidewalkCooldown: 8, // intervalo mínimo entre multas de calçada
   },

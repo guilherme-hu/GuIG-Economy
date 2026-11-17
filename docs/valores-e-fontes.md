@@ -45,15 +45,15 @@ O jogo comprime a realidade: uma cidade de 1,6 km e um turno de 15 minutos. Duas
 | Prazo | distância ÷ velocidade de referência + 30 s | 28 km/h nas curtas e 40 km/h nas longas: a longa paga mais, mas o prazo por km aperta | `jobs.refSpeedShort`, `jobs.refSpeedLong`, `jobs.deadlineBuffer` |
 | Aluguel da moto | R$ 25 por dia | R$ 175 por semana (plano mais barato da Mottu) ÷ 7 | `economy.bikeRentPerDay` |
 | Combustível | R$ 0,60 por km do jogo | ~R$ 0,20 por km real × 3 | `economy.fuelPerKm` |
-| Multa de sinal vermelho | R$ 293,47 | Valor real, sem conversão. Só nos cruzamentos com radar (30% dos que têm semáforo) | `rules.fineRedLight` |
-| Multa na calçada | R$ 880,41 | Valor real, sem conversão | `rules.fineSidewalk` |
-| Multa por contramão | R$ 293,47 | Valor de gravíssima | `rules.fineWrongWay` |
-| Conserto da moto | R$ 80 | Estimativa de peças pequenas | `rules.repairCost` |
+| Multa de sinal vermelho | R$ 29,35 | 1/10 do valor real (R$ 293,47). Só nos cruzamentos com radar (30% dos que têm semáforo) | `rules.fineRedLight` |
+| Multa na calçada | R$ 88,04 | 1/10 do valor real (R$ 880,41) | `rules.fineSidewalk` |
+| Multa por contramão | R$ 29,35 | 1/10 do valor de gravíssima | `rules.fineWrongWay` |
+| Conserto da moto | R$ 30 | Peças pequenas (manete, retrovisor, pisca), na escala do jogo | `rules.repairCost` |
 | Contas do dia 1 | **R$ 46,80** | Salário mínimo líquido (R$ 1.404,15) ÷ 30 dias: o que o entregador precisa tirar por dia só para viver com um mínimo | `shift.billsDay1` |
 | Aumento das contas | +3% por dia | Recurso de jogo: a pressão cresce a cada dia | `shift.billsGrowth` |
 | Despejo | 2 dias seguidos sem pagar as contas | Recurso de jogo | `shift.missedDaysToLose` |
 
-**Por que as multas não foram convertidas.** Uma multa real de R$ 293,47 equivale a mais de 3 horas de faturamento bruto de um entregador (a R$ 28–31/h). No jogo, ela equivale a vários dias do lucro de quem joga bem. Mantivemos o valor real de propósito: é o que mostra o tamanho do risco que o entregador assume sozinho.
+**Por que as multas são 1/10 do valor real.** Uma multa real de R$ 293,47 equivale a **cerca de 10 horas de faturamento bruto** de um entregador (a R$ 28–31/h), ou quase três turnos do jogo. Com o valor real, a primeira multa já levaria ao despejo e o jogo viraria punição pura. A 1/10, uma multa de sinal (R$ 29,35) consome mais ou menos o lucro de um bom dia, e a da calçada (R$ 88,04) passa disso; a proporção entre as infrações é a mesma do CTB. **Na apresentação vale citar o valor real**: no jogo a multa dói; na vida real, ela é dez vezes maior.
 
 ## 3. Como sabemos que dá para lucrar, mas é difícil
 
@@ -77,7 +77,7 @@ Resultado (3 dias por combinação; contas de R$ 46,80, R$ 48,20 e R$ 49,65):
 Como chegamos aqui: na primeira calibração (turno de 12 min, R$ 1,50/km, contas de R$ 50,60), nem o robô no limite pagava as contas, e no ritmo lento os atrasos derrubavam a nota até a conta ser desativada. Atendendo ao pedido do grupo, alongamos o turno, pagamos mais pelas longas (R$ 2,50/km, a reivindicação dos entregadores), afrouxamos os prazos e baixamos as contas para o salário mínimo líquido.
 
 Leituras para a apresentação:
-- **Dá lucro, mas só correndo.** Quem joga bem dentro do trânsito quase paga as contas e fica a centavos delas; quem corre acima do limite paga com folga. No jogo de verdade, correr significa furar sinal, costurar no trânsito e arriscar uma batida ou uma multa que apaga dias de trabalho.
+- **Dá lucro, mas só correndo.** Quem joga bem dentro do trânsito quase paga as contas e fica a centavos delas; quem corre acima do limite paga com folga. No jogo de verdade, correr significa furar sinal, costurar no trânsito e arriscar uma batida (fim de jogo) ou uma multa que come o lucro do dia.
 - **Escolher as corridas importa.** Pegar sempre a primeira oferta rende bem menos do que escolher pelo valor por km rodado, por causa do km morto e dos prazos.
 - **A corrida longa só compensa para quem corre.** Mesmo com R$ 2,50/km, quem anda no limite perde dinheiro escolhendo só as longas, porque o prazo aperta e o tempo gasto não volta.
 - **Com o valor real do iFood (R$ 1,50/km), a corrida longa não compensava para ninguém.**
