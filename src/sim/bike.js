@@ -74,20 +74,41 @@ export function createBike(config, { city, graph }, spawn) {
     bike.distance += Math.abs(bike.speed) * dt;
   }
 
+  const limitOf = (edgeId) => {
+    const edge = city.edges[edgeId];
+    return edge.halfWidth + (edge.bridge ? config.bridgeMargin : config.offRoadMargin) - bike.radius;
+  };
+  const probe = {};
+
   function keepOnRoad() {
     bike.wallHit = 0;
     const road = graph.nearestEdge(bike.x, bike.z);
     bike.road = road;
     if (!road) return;
     const edge = city.edges[road.edge];
-    const limit = edge.halfWidth + (edge.bridge ? config.bridgeMargin : config.offRoadMargin) - bike.radius;
     bike.onSidewalk = road.dist > edge.halfWidth + bike.radius && !insideJunction(edge);
-    if (road.dist <= limit) return;
+    let wall = road.edge;
+    let dist = road.dist;
+    let t = road.t;
+    let limit = limitOf(wall);
+    if (dist <= limit) return;
+
+    // Num cruzamento, a via de eixo mais próximo nem sempre é a que a moto está usando: na boca de uma ponte
+    // ou onde uma rua chega numa avenida, a via vizinha é mais larga. Vale a que deixa a moto mais para dentro.
+    for (const other of graph.nearbyEdges(road.edge)) {
+      graph.projectOnEdge(other, bike.x, bike.z, probe);
+      if (probe.dist - limitOf(other) >= dist - limit) continue;
+      wall = other;
+      dist = probe.dist;
+      t = probe.t;
+      limit = limitOf(other);
+    }
+    if (dist <= limit) return;
 
     // Empurra de volta para o limite, ao longo da normal que sai do eixo da via.
-    const axis = graph.pointOnEdge(road.edge, road.t, 0);
-    const nx = (bike.x - axis.x) / road.dist;
-    const nz = (bike.z - axis.z) / road.dist;
+    const axis = graph.pointOnEdge(wall, t, 0);
+    const nx = (bike.x - axis.x) / dist;
+    const nz = (bike.z - axis.z) / dist;
     bike.x = axis.x + nx * limit;
     bike.z = axis.z + nz * limit;
 

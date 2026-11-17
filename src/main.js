@@ -15,9 +15,10 @@ import { createCityView } from './render/cityView.js';
 import { createAerialCamera, createChaseCamera } from './render/camera.js';
 import { createBikeView } from './render/bikeView.js';
 import { createBike } from './sim/bike.js';
+import { createAutopilot } from './sim/autopilot.js';
 import { createEconomy } from './sim/economy.js';
 import { createJobs } from './sim/jobs.js';
-import { nextManeuver, createAutopilot } from './sim/navigation.js';
+import { nextManeuver } from './sim/navigation.js';
 import { createMarkersView } from './render/markersView.js';
 import { createPhone } from './ui/phone/phone.js';
 import { copy } from './ui/copy.js';
@@ -40,8 +41,20 @@ const spawn = { ...graph.pointOnEdge(home.edge, home.t, home.side * config.city.
 const bike = createBike(config.bike, { city, graph }, spawn);
 const economy = createEconomy(config.economy, events);
 const jobs = createJobs({ city, graph, rng: rng.fork('ofertas'), events, economy, config: config.jobs });
-const drive = createAutopilot(config.autopilot);
-const sim = { time: 0, phase: 'menu', city, graph, bike, economy, jobs, nav: null, autopilot: false };
+const pilot = createAutopilot({ city, graph, bike, config: config.autopilot });
+const sim = { time: 0, phase: 'menu', city, graph, bike, pilot, economy, jobs, nav: null, autopilot: false };
+
+/** Com o piloto ligado, ele vai sozinho ao destino da corrida ativa (restaurante, depois cliente). */
+let pilotTarget = null;
+function pilotInput(dt) {
+  const target = jobs.active?.target ?? null;
+  if (target !== pilotTarget) {
+    pilotTarget = target;
+    if (target) pilot.goTo(target);
+    else pilot.stop();
+  }
+  return pilot.step(dt);
+}
 
 const stage = createScene(canvas);
 const cityView = createCityView({ city, config: config.city, scene: stage.scene, assets: createAssets() });
@@ -126,7 +139,7 @@ const loop = createLoop({
     if (sim.phase !== 'turno') return;
     const before = bike.distance;
     sim.nav = nextManeuver(jobs.active?.route, city);
-    bike.step(sim.autopilot ? drive(bike, jobs.active?.route, sim.nav) : input.state, dt);
+    bike.step(sim.autopilot ? pilotInput(dt) : pilot.active ? pilot.step(dt) : input.state, dt);
     economy.chargeFuel(bike.distance - before);
     economy.tick(dt);
     jobs.step(dt, bike);
@@ -159,7 +172,12 @@ window.__game = {
   view: { stage, cityView, aerial, chase, bikeView },
   start: startShift,
   phone,
-  autopilot: (on) => (sim.autopilot = on),
+  /** Liga ou desliga o piloto automático: ligado, ele faz sozinho a corrida ativa. */
+  autopilot(on) {
+    sim.autopilot = on;
+    pilotTarget = null;
+    if (!on) pilot.stop();
+  },
   acceptOffer: (i) => jobs.accept(jobs.offers[i]?.id, bike),
   /** Põe a moto no cruzamento `nodeId`, parada. */
   teleport(nodeId) {
@@ -171,6 +189,7 @@ window.__game = {
     time: sim.time,
     phase: sim.phase,
     bike: { x: bike.x, z: bike.z, heading: bike.heading, kmh: bike.speed * 3.6, road: bike.road?.edge },
+    autopilot: { active: pilot.active, arrived: pilot.arrived },
     money: economy.money,
     offers: jobs.offers.length,
     job: jobs.active && { phase: jobs.active.phase, timeLeft: jobs.active.timeLeft, pay: jobs.active.offer.pay, remaining: jobs.active.route?.length },
@@ -180,4 +199,6 @@ window.__game = {
     view: { buildingsLoaded: cityView.loaded, drawCalls: stage.renderer.info.render.calls, triangles: stage.renderer.info.render.triangles },
   }),
   setTimeScale: (n) => (loop.timeScale = n),
+  /** Piloto automático até o POI `poiId`. Devolve false se não há rota. */
+  goTo: (poiId) => pilot.goTo({ edge: city.pois[poiId].edge, t: city.pois[poiId].t }),
 };

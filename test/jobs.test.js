@@ -8,7 +8,7 @@ import { createGraph } from '../src/sim/city/graph.js';
 import { createEconomy } from '../src/sim/economy.js';
 import { createBike } from '../src/sim/bike.js';
 import { createJobs } from '../src/sim/jobs.js';
-import { nextManeuver, createAutopilot } from '../src/sim/navigation.js';
+import { createAutopilot } from '../src/sim/autopilot.js';
 
 const DT = 1 / 60;
 
@@ -40,14 +40,16 @@ test('ofertas: corrida mais longa paga mais por inteiro e tem prazo mais apertad
 });
 
 test('piloto automático coleta e entrega: dinheiro entra, gorjeta nunca passa do teto', () => {
-  const { jobs, bike, economy, city, events } = world();
-  const drive = createAutopilot(config.autopilot);
+  const { jobs, bike, economy, city, graph, events } = world();
+  const pilot = createAutopilot({ city, graph, bike, config: config.autopilot });
+  let target = null;
   const delivered = [];
   events.on('job:delivered', (e) => delivered.push(e));
   while (!jobs.offers.length) jobs.step(DT, bike);
   assert.ok(jobs.accept(jobs.offers[0].id, bike));
   for (let i = 0; i < 60 * 600 && jobs.active; i++) {
-    bike.step(drive(bike, jobs.active.route, nextManeuver(jobs.active.route, city)), DT);
+    if (jobs.active.target !== target) pilot.goTo((target = jobs.active.target));
+    bike.step(pilot.step(DT), DT);
     jobs.step(DT, bike);
   }
   assert.equal(jobs.active, null, 'a corrida deveria ter terminado em 10 min de jogo');
