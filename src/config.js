@@ -162,30 +162,42 @@ export const config = {
   rules: {
     crashSpeed: kmh(40), // impacto acima disso = acidente, fim de jogo
     damageSpeed: kmh(20), // entre isso e o acidente: a moto quebra e o conserto sai do seu bolso
-    repairCost: 35,
+    repairCost: 80, // manete, retrovisor, pisca: o dano é do entregador mesmo com moto alugada
     crashScreenDelay: 2.4, // s de efeito do acidente antes da tela de fim
     repairCooldown: 2, // s: raspar na parede não cobra um conserto por passo
     cameraShare: 0.3, // fração dos cruzamentos com semáforo que têm radar
     cameraWarnDistance: 180, // m: o GPS avisa do radar a partir daqui
     cameraWarnCone: 0.8, // cosseno do ângulo à frente em que o radar conta
-    fineRedLight: 60,
-    fineWrongWay: 30,
+    // Multas com os valores reais do CTB (2025): gravíssima = R$ 293,47; na calçada, ×3 (art. 193).
+    fineRedLight: 293.47, // art. 208
+    fineWrongWay: 293.47, // art. 186, II
     fineMinSpeed: 2, // m/s: abaixo disso não conta como furar sinal nem contramão
     wrongWayGrace: 1.5,
     bumpKeep: 0.4, // fração da velocidade que sobra num toque leve em veículo
-    fineSidewalk: 45,
+    fineSidewalk: 880.41, // art. 193
     sidewalkGrace: 3, // segundos na calçada antes da multa (contador na tela)
     sidewalkCooldown: 8, // intervalo mínimo entre multas de calçada
   },
 
+  // Valores reais (2025): iFood paga no mínimo R$ 7,50 por rota de moto até 4 km e R$ 1,50 por km adicional.
+  // A cidade do jogo é uma miniatura: 1 km do jogo vale `kmScale` km de verdade (uma entrega típica real tem ~3 km).
   jobs: {
     offerCount: 3,
     offerLifetime: 12,
-    basePay: 4.5,
-    payPerKm: 1.6,
-    surgeMin: 0.8,
-    surgeMax: 1.6,
-    surgeBadge: 1.3,
+    minPay: 7.5,
+    payPerKm: 1.5,
+    freeKm: 4, // km reais cobertos pelo mínimo
+    kmScale: 2,
+    bands: [
+      { name: 'curta', share: 0.45, min: 300, max: 900 },
+      { name: 'media', share: 0.35, min: 900, max: 1800 },
+      { name: 'longa', share: 0.2, min: 1800, max: 3600 },
+    ],
+    restaurantChoices: 3, // o app oferece restaurantes entre os mais próximos
+    customerTries: 6,
+    surgeChance: 0.2,
+    surgeMax: 1.4,
+    surgeBadge: 1.15,
     pickupStopTime: 1.5,
     stopSpeed: kmh(5),
     stopRadius: 9, // cobre o marcador do outro lado de uma avenida larga
@@ -209,11 +221,12 @@ export const config = {
     ratingCancelled: 0.5,
     acceptanceFloor: 0.5, // abaixo disso o app esconde as ofertas boas
     acceptanceWindow: 10,
-    fuelPerKm: 0.35,
-    bikeRentPerDay: 40,
-    // R$/hora do extrato: um turno (shift.duration segundos de jogo) representa uma jornada de
-    // shiftHours horas reais, para o número ser comparável com a vida real.
-    shiftHours: 10,
+    fuelPerKm: 0.4, // por km do jogo: ~R$ 0,20 por km real (gasolina + manutenção) × jobs.kmScale
+    bikeRentPerDay: 25, // aluguel de moto para entregador: a partir de R$ 175 por semana (Mottu) ÷ 7
+    // R$/hora do extrato: um turno (shift.duration segundos de jogo) representa uma jornada de shiftHours horas
+    // reais. Entregadores trabalham em média menos de 4 h por dia (Cebrap); com 3 h, quem joga rápido fatura
+    // ~R$ 29 por hora, o mesmo bruto médio real (R$ 28–31/h). 1 min de jogo ≈ 15 min reais.
+    shiftHours: 3,
     get shiftDuration() {
       return config.shift.duration;
     },
@@ -224,9 +237,9 @@ export const config = {
   },
 
   shift: {
-    duration: 360,
-    billsDay1: 90,
-    billsGrowth: 0.15,
+    duration: 720,
+    billsDay1: 50.6, // o salário mínimo de 2025 (R$ 1.518) dividido pelos 30 dias do mês
+    billsGrowth: 0.05, // as contas apertam a cada dia
     missedDaysToLose: 2,
   },
 };

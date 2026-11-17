@@ -7,7 +7,7 @@ const RULES = [
   ['🚦', 'Sinal vermelho', 'Só multa onde tem <b>radar</b> (caixa laranja no poste); o GPS avisa quando há um à frente. Nos outros você pode furar. O risco é seu.'],
   ['💥', 'Batidas', 'Encostar devagar é só um tranco. Entre 20 e 40 km/h a moto quebra e o conserto sai do seu bolso. Acima de 40 km/h é acidente: fim de jogo. Vale para carros e paredes.'],
   ['🚷', 'Calçada e contramão', 'Subiu na calçada, a moto perde velocidade e um contador começa: zerou, multa. Contramão em rua de mão única também multa.'],
-  ['💸', 'A conta é sua', 'Combustível, aluguel da moto, multas e consertos são descontados dos seus ganhos. No fim do dia você vê quanto sobrou.'],
+  ['💸', 'A conta é sua', 'Combustível, aluguel da moto, multas e consertos saem dos seus ganhos, e o caminho até o restaurante não é pago. As multas são as do código de trânsito: um sinal vermelho custa R$ 293,47.'],
 ];
 
 export function createTutorial(root) {

@@ -24,18 +24,24 @@ function world() {
   return { city, graph, events, economy, bike, jobs };
 }
 
-test('ofertas: corrida mais longa paga mais por inteiro e tem prazo mais apertado por km', () => {
+test('ofertas: curtas, médias e longas; longa paga mais e tem prazo mais apertado por km; mínimo sempre garantido', () => {
   const { jobs, bike } = world();
   const offers = [];
-  for (let i = 0; i < 4000 && offers.length < 40; i++) {
+  for (let i = 0; i < 20000 && offers.length < 80; i++) {
     jobs.step(DT, bike);
     for (const o of jobs.offers.splice(0)) offers.push(o);
   }
-  assert.ok(offers.length >= 20);
-  offers.sort((a, b) => a.distance - b.distance);
+  assert.ok(offers.length >= 60);
+  for (const band of config.jobs.bands) assert.ok(offers.some((o) => o.band === band.name), `faltou oferta ${band.name}`);
+  for (const o of offers) {
+    assert.ok(o.pay >= config.jobs.minPay, 'nunca abaixo da taxa mínima');
+    assert.ok(o.distance >= o.paidDistance, 'o trecho pago está dentro do percurso');
+  }
+  const base = (o) => o.pay / o.surge;
+  offers.sort((a, b) => a.paidDistance - b.paidDistance);
   const short = offers[0];
   const long = offers.at(-1);
-  assert.ok(long.pay / long.surge > short.pay / short.surge);
+  assert.ok(base(long) > base(short), 'a longa paga mais que a curta');
   assert.ok((long.deadline - config.jobs.deadlineBuffer) / long.distance < (short.deadline - config.jobs.deadlineBuffer) / short.distance);
 });
 
