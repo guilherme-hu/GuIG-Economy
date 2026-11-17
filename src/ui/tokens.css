@@ -1,0 +1,245 @@
+/*
+ * Design tokens da interface. Identidade do Rapidão: lima vibrante sobre tinta quase-preta,
+ * coral para multa/alerta. O baú da moto no 3D usa --lime-500 (#C8FF2E).
+ */
+@font-face {
+  font-family: 'Figtree';
+  src: url('/assets/fonts/figtree-latin-wght-normal.woff2') format('woff2-variations');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Tinta (neutros frios, nunca preto puro) */
+  --ink-950: #0b0c11;
+  --ink-900: #12131a;
+  --ink-800: #1a1c26;
+  --ink-700: #242735;
+  --ink-600: #343849;
+  --ink-500: #50556b;
+  --ink-400: #7f859c;
+  --ink-300: #a9aec2;
+  --ink-200: #d3d6e2;
+  --ink-100: #eceef4;
+  --paper: #f5f6ee;
+  --paper-dim: #e4e6d8;
+
+  /* Marca */
+  --lime-300: #e3ff8f;
+  --lime-400: #d6ff5e;
+  --lime-500: #c8ff2e;
+  --lime-600: #a9e010;
+  --lime-700: #7ea800;
+  --lime-900: #2a3606;
+
+  /* Alerta / multa */
+  --coral-400: #ff7d73;
+  --coral-500: #ff5a4e;
+  --coral-600: #e63e32;
+  --coral-900: #3d1512;
+
+  /* Atenção (prazo apertando, estrelas) */
+  --amber-400: #ffc94d;
+  --amber-500: #ffb627;
+
+  /* Papéis */
+  --text: var(--ink-100);
+  --text-dim: var(--ink-300);
+  --text-faint: var(--ink-400);
+  --brand: var(--lime-500);
+  --on-brand: var(--ink-900);
+  --danger: var(--coral-500);
+  --warn: var(--amber-500);
+
+  /* Placa translúcida do HUD: legível sobre entardecer claro e sobre noite */
+  --plate: rgb(14 15 22 / 0.72);
+  --plate-strong: rgb(14 15 22 / 0.86);
+  --plate-border: rgb(255 255 255 / 0.1);
+  --plate-blur: blur(14px) saturate(1.3);
+  --hairline: rgb(255 255 255 / 0.08);
+
+  /* Tipografia */
+  --font: 'Figtree', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+
+  /* Raios e sombras */
+  --r-sm: 0.375em;
+  --r-md: 0.625em;
+  --r-lg: 0.875em;
+  --r-xl: 1.25em;
+  --r-full: 999px;
+  --shadow-plate: 0 0.5em 1.5em rgb(0 0 0 / 0.28);
+  --shadow-pop: 0 1.5em 4em rgb(0 0 0 / 0.5), 0 0.25em 0.75em rgb(0 0 0 / 0.35);
+
+  /* Movimento */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --fast: 140ms;
+  --base: 240ms;
+  --slow: 420ms;
+
+  /* Escala da interface: 14px em 1366×768 → 20px em 1920×1080. Componentes medem em em. */
+  --ui-size: clamp(13px, min(1.04vw, 1.85vh), 22px);
+}
+
+/* Base compartilhada por HUD, celular e telas */
+.ui {
+  font-family: var(--font);
+  font-size: var(--ui-size);
+  line-height: 1.35;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+}
+
+.ui *,
+.ui *::before,
+.ui *::after {
+  box-sizing: border-box;
+}
+
+.ui [hidden] {
+  display: none !important;
+}
+
+/* :where mantém o reset com especificidade baixa: qualquer classe de componente vence. */
+:where(.ui) button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.ui button:focus-visible {
+  outline: 2px solid var(--lime-500);
+  outline-offset: 2px;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Botão e barra de progresso, usados no celular e nas telas */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55em;
+  height: 2.7em;
+  padding: 0 1.1em;
+  border-radius: 0.85em;
+  font-size: 0.85em;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background var(--fast) linear, transform var(--fast) var(--ease-out), opacity var(--fast) linear;
+}
+
+.ui .btn--brand {
+  background: var(--lime-500);
+  color: var(--ink-900);
+}
+
+.ui .btn--brand:hover {
+  background: var(--lime-400);
+}
+
+.ui .btn--ghost {
+  background: var(--ink-700);
+  color: var(--ink-200);
+}
+
+.ui .btn--ghost:hover {
+  background: var(--ink-600);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.ui .btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn .kbd {
+  background: rgb(18 19 26 / 0.14);
+  box-shadow: inset 0 0 0 1px rgb(18 19 26 / 0.25);
+  color: inherit;
+}
+
+.bar {
+  height: 0.38em;
+  border-radius: var(--r-full);
+  background: var(--ink-700);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--lime-500);
+  transform-origin: left;
+  transition: background var(--base) linear;
+}
+
+/* Tecla de atalho */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.7em;
+  height: 1.7em;
+  padding: 0 0.45em;
+  border-radius: 0.4em;
+  background: rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 -0.12em 0 rgb(0 0 0 / 0.35), inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  font-size: 0.75em;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--ink-100);
+}
+
+/* Marca: palavra em itálico falso (a fonte não tem itálico) + raio */
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.wordmark__text {
+  display: inline-block;
+  transform: skewX(-9deg);
+}
+
+.wordmark__bolt {
+  width: 0.95em;
+  height: 0.95em;
+  padding: 0.14em;
+  border-radius: 0.28em;
+  background: var(--lime-500);
+  color: var(--ink-900);
+}
+
+.wordmark--on-brand .wordmark__bolt {
+  background: var(--ink-900);
+  color: var(--lime-500);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui *,
+  .ui *::before,
+  .ui *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

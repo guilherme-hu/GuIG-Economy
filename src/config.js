@@ -21,26 +21,75 @@ export const config = {
     street: { lanes: 1, laneWidth: 3.4, speedLimit: kmh(50) },
     avenue: { lanes: 2, laneWidth: 3.3, speedLimit: kmh(70) },
     sidewalk: 3.2,
+
+    // Posições em fração de `size` (−0,5 a +0,5), com (0, 0) no meio do mapa.
+    river: { startZ: -0.2, endZ: 0.27, meander: 55, waves: 1.6, segments: 40 },
+    bankNorth: 26, // da beira d'água ao eixo da marginal
+    bankSouth: 26, // da beira d'água ao primeiro cruzamento do lado sul
+    diagonals: [
+      { from: [-0.46, 0.4], to: [0.44, -0.46] },
+      { from: [0, -0.48], to: [0.3, 0.47] },
+    ],
+    edgeMargin: 40, // faixa livre entre as ruas e a borda do mundo
+    avenueClear: 0.42, // em nodeSpacing: a malha não põe cruzamento mais perto que isso de uma avenida
+    hookMax: 1.25, // em nodeSpacing: comprimento máximo de uma travessa ligando a malha à avenida
+    hookAngle: 0.7, // rad: ângulo mínimo entre a travessa e a avenida
+
+    centro: { x: 0.08, z: -0.15, radius: 0.24, rotation: 0.26, squeeze: 0.16, core: 0.45 },
+    industrial: { x: 0.3, z: 0.36, radius: 0.3 },
+    jitterScale: { centro: 0.5, bairro: 1, industrial: 0.6 },
+    removalScale: { centro: 0.45, bairro: 1.15, industrial: 0.3 }, // multiplica edgeRemoval
+    deadEnds: 12, // mínimo de becos sem saída, todos no Bairro
+
+    restaurantsInCentro: 0.75,
+    poiSpacing: 30,
+    homeFromCentro: 0.3, // em size: distância mínima da casa ao Centro
+
+    lots: {
+      setback: 1.5, // recuo entre a calçada e a fachada
+      gap: [1.5, 6],
+      riverMargin: 4,
+      // Frente (w) e fundo (d) de cada tipo de lote, do tamanho dos modelos 3D na escala do jogo.
+      predio: { w: [12, 20], d: [13, 17] },
+      'arranha-ceu': { w: [18, 21], d: [18, 21] },
+      casa: { w: [12, 19], d: [11, 15] },
+      galpao: { w: [20, 32], d: [14, 22] },
+      praca: { w: [26, 38], d: [24, 32] },
+      mix: {
+        centro: { predio: 0.96, praca: 0.04 },
+        bairro: { casa: 0.88, predio: 0.06, praca: 0.06 },
+        industrial: { galpao: 0.92, predio: 0.08 },
+      },
+      skyscraperShare: 0.5, // dos prédios dentro do miolo do Centro
+    },
   },
 
   bike: {
     maxSpeed: kmh(95),
     reverseSpeed: kmh(8),
-    accel: 6.2, // ~0–60 km/h em 3 s
+    accel: 7.5, // ~0–60 km/h em 3 s
     brake: 11,
     hardBrake: 19,
     drag: 0.35,
-    steerRate: 2.6, // rad/s parado; cai com a velocidade
-    steerSpeedFalloff: kmh(60),
-    maxLean: 0.55,
+    steerRate: 2.4, // rad/s em baixa velocidade
+    steerFullSpeed: 2, // abaixo disso a moto gira menos (parada não gira)
+    steerResponse: 7, // quão rápido o guidão segue a tecla
+    maxLateralAccel: 13, // limita a curva em alta velocidade (m/s²)
+    maxLean: 0.6,
+    leanResponse: 3.5,
     radius: 0.55,
-    wallBounce: 0.2, // fração da velocidade que sobra ao bater em prédio
+    offRoadMargin: 3.2, // calçada: até onde dá para sair do asfalto
+    bridgeMargin: 0.4,
+    wallBounce: 0.2, // fração da velocidade que sobra numa batida de frente em prédio
+    wallHitMinSpeed: 3,
+    wallDeflect: 0.12, // rad: desvio do guidão ao raspar na parede
   },
 
   signals: {
     green: 9,
     yellow: 2.2,
     allRed: 1,
+    offsetStep: 0.618, // defasagem entre nós de ids consecutivos, em fração do ciclo (razão áurea espalha bem)
   },
 
   traffic: {
@@ -94,6 +143,16 @@ export const config = {
     acceptanceWindow: 10,
     fuelPerKm: 0.35,
     bikeRentPerDay: 40,
+    // R$/hora do extrato: um turno (shift.duration segundos de jogo) representa uma jornada de
+    // shiftHours horas reais, para o número ser comparável com a vida real.
+    shiftHours: 10,
+    get shiftDuration() {
+      return config.shift.duration;
+    },
+    // atraso (s) em que a perda de nota chega a ratingLateMax; além disso o pedido é cancelado
+    get ratingLateFullAt() {
+      return config.jobs.cancelAfterLate;
+    },
   },
 
   shift: {

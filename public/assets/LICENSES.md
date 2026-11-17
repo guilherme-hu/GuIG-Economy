@@ -11,3 +11,7 @@ Todos os modelos 3D em `models/` são de **Kenney** (https://kenney.nl), licenç
 | `models/industrial` | City Kit (Industrial) |
 | `models/street` | City Kit (Roads) |
 | `models/characters` | Mini Characters |
+
+## Fontes
+
+- `fonts/figtree-latin-wght-normal.woff2` — **Figtree** (variável, subset latin), de Erik Kennedy, licença **SIL Open Font License 1.1**, via Fontsource (https://fontsource.org/fonts/figtree).

@@ -33,9 +33,10 @@ main.js        composição: único arquivo que conhece todos os módulos
 src/
   main.js  config.js
   core/    loop.js  events.js  rng.js  input.js
-  sim/     city/generator.js  city/graph.js
+  sim/     city/generator.js  city/graph.js  (+ city/geometry.js  city/lots.js  city/pois.js, internos do gerador)
            bike.js  traffic.js  signals.js  rules.js  jobs.js  economy.js  shift.js  autopilot.js
-  render/  scene.js  assets.js  cityView.js  bikeView.js  trafficView.js  markersView.js  camera.js  effects.js
+  render/  scene.js  assets.js  cityView.js (+ terrain.js  roads.js  buildings.js  batch.js, as partes dele)
+           bikeView.js  trafficView.js  markersView.js  camera.js  effects.js
   ui/      base.css  tokens.css  phone/  hud.js  screens.js  tutorial.js
   audio/   audio.js
 test/      um arquivo por módulo de sim/
@@ -75,14 +76,16 @@ City = {
   lots:  [{ x, z, w, d, heading /* frente virada para a rua */, district, kind: 'predio'|'arranha-ceu'|'casa'|'galpao'|'praca', seed }],
 }
 // ids de nós e arestas são os índices nos arrays. `node.radius` = raio da área do cruzamento (linha de retenção fica aí).
+// O rng da cidade é sempre `rng.fork('cidade')`. `poi.x/z` fica a 1 m do meio-fio, do lado `side` da via.
+// `river.points` vai de oeste a leste: a margem norte (Centro) é a esquerda, a sul (Industrial e casa) é a direita.
 
 // sim/city/graph.js
 createGraph(city) → {
-  nearestEdge(x, z) → { edge, t, dist, side },                  // spatial hash; dist ao eixo da via
+  nearestEdge(x, z, out?) → { edge /* id */, t, dist, side },   // spatial hash; dist ao eixo da via; `out` evita alocar por frame
   route(from: {edge,t}, to: {edge,t}) → { points: [{x,z}], steps: [{ edge, forward }], length } | null,  // A*, respeita mão única
   canTravel(edgeId, fromNodeId) → boolean,
   otherEnd(edgeId, nodeId) → nodeId,
-  pointOnEdge(edgeId, t, lateral = 0) → { x, z },
+  pointOnEdge(edgeId, t, lateral = 0, out?) → { x, z },         // lateral positivo = direita de a→b
 }
 
 // sim/bike.js
@@ -143,8 +146,11 @@ Precisa mudar o contrato? Mude aqui no mesmo commit e avise no relatório final.
 
 ## Como verificar sem um humano jogando
 
-`window.__game` (sempre disponível) expõe `sim`, `config`, `events`, `loop`, e:
+`window.__game` (sempre disponível) expõe `sim`, `config`, `events`, `loop`, `view` (`stage`, `cityView`, `aerial`), e:
 `state()` (resumo JSON), `teleport(nodeId)`, `autopilot(true|false)`, `setTimeScale(n)`, `acceptOffer(i)`, `loop.advance(nPassos)`.
+
+`?debug=mapa` abre a vista aérea com arrastar e zoom; `&cam=x,z,distância,inclinação,giro` (graus) fixa a câmera para screenshots.
+`state().view.buildingsLoaded` avisa quando os modelos terminaram de carregar.
 
 Para cada marco: (1) `npm test` passa; (2) jogo abre e `read_console_messages` não tem erros;
 (3) screenshot e inspeção visual de verdade; (4) critério de aceite do PLANO.md exercitado via `javascript_tool`.

@@ -121,9 +121,10 @@ Cada marco é uma issue no GitHub e termina com o jogo rodando, verificado confo
 
 - [x] **M0 — Esqueleto.** (#1) Vite + three, `.claude/launch.json`, `.gitignore`, loop de passo fixo, um chão e um cubo, `window.__game.state()`.
   *Aceite:* página abre sem erro no console; `npm test` roda (mesmo com 1 teste trivial de `rng`).
-- [ ] **M1 — Mapa.** (#2) `map.js` completo com testes; `world.js` desenha ruas, rio, pontes, prédios. Câmera aérea de debug (`?debug=mapa`).
+- [x] **M1 — Mapa.** (#2) `map.js` completo com testes; `world.js` desenha ruas, rio, pontes, prédios. Câmera aérea de debug (`?debug=mapa`).
   *Aceite:* testes do mapa passam; screenshot aéreo mostra claramente os 3 distritos, o rio, as 3 pontes e as diagonais — **não é uma grade**.
-- [ ] **M2 — Moto.** (#3) Controles, câmera 3ª pessoa, limite de rua/prédio, inclinação, `teleport`.
+  *Verificado* no Chrome headless (renderização por software): console limpo, screenshots aéreo, oblíquos e na altura da rua, arrastar e zoom da câmera. *Não verificado:* taxa de quadros numa placa de vídeo de verdade — a cidade inteira à vista soma ~2,3 milhões de triângulos (~1,3 milhão na órbita do menu). Semáforos, postes e árvores de rua ficaram para o M4/M6.
+- [x] **M2 — Moto.** (#3) Controles, câmera 3ª pessoa, limite de rua/prédio, inclinação, `teleport`.
   *Aceite:* dá para atravessar a cidade de uma ponta à outra sem atravessar prédio; screenshot em 3ª pessoa legível.
 - [ ] **M3 — Celular, ofertas e GPS.** (#4) `jobs.js` com testes, celular com 3 telas, A*, marcadores, coleta/entrega, cronômetro, seta de próxima curva, `autopilot` e `acceptOffer`.
   *Aceite:* via `__game`: aceitar oferta, ligar autopilot, e o dinheiro em `state()` aumenta sozinho após a entrega.
