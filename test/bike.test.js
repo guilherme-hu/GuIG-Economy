@@ -15,6 +15,7 @@ function straightRoad() {
     nearestEdge: (x, z) => ({ edge: 0, t: Math.max(0, Math.min(1, x / 1000)), dist: Math.abs(z), side: Math.sign(z) || 1 }),
     pointOnEdge: (edge, t) => ({ x: t * 1000, z: 0 }),
     nearbyEdges: () => [],
+    edgesAround: () => [],
   };
   return { city, graph };
 }

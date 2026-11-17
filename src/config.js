@@ -18,8 +18,8 @@ export const config = {
     signalShareStreets: 0.4, // cruzamentos rua×rua com grau ≥ 3
     restaurants: 14,
     customers: 40,
-    street: { lanes: 1, laneWidth: 3.4, speedLimit: kmh(70) },
-    avenue: { lanes: 2, laneWidth: 3.3, speedLimit: kmh(100) },
+    street: { lanes: 1, laneWidth: 4.4, speedLimit: kmh(70) }, // largas o bastante para uma moto passar entre os carros
+    avenue: { lanes: 2, laneWidth: 4.2, speedLimit: kmh(100) },
     sidewalk: 3.2,
 
     // Posições em fração de `size` (−0,5 a +0,5), com (0, 0) no meio do mapa.
@@ -187,7 +187,7 @@ export const config = {
     surgeBadge: 1.3,
     pickupStopTime: 1.5,
     stopSpeed: kmh(5),
-    stopRadius: 7,
+    stopRadius: 9, // cobre o marcador do outro lado de uma avenida larga
     deadlineBuffer: 20,
     refSpeedShort: kmh(35), // corridas curtas: prazo folgado
     refSpeedLong: kmh(55), // corridas longas: prazo apertado

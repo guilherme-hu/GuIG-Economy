@@ -93,9 +93,9 @@ export function createBike(config, { city, graph }, spawn) {
     let limit = limitOf(wall);
     if (dist <= limit) return;
 
-    // Num cruzamento, a via de eixo mais próximo nem sempre é a que a moto está usando: na boca de uma ponte
-    // ou onde uma rua chega numa avenida, a via vizinha é mais larga. Vale a que deixa a moto mais para dentro.
-    for (const other of graph.nearbyEdges(road.edge)) {
+    // A via de eixo mais próximo nem sempre é a que a moto está usando: na boca de uma ponte, onde uma rua
+    // chega numa avenida, ou com uma rua correndo ao lado de uma avenida larga. Vale a que deixa a moto mais para dentro.
+    for (const other of graph.edgesAround(bike.x, bike.z)) {
       graph.projectOnEdge(other, bike.x, bike.z, probe);
       if (probe.dist - limitOf(other) >= dist - limit) continue;
       wall = other;

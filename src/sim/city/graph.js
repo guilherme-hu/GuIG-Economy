@@ -92,6 +92,25 @@ export function createGraph(city) {
   const neighbours = edges.map((edge) => [...new Set([...nodes[edge.a].edges, ...nodes[edge.b].edges])].filter((id) => id !== edge.id));
   const nearbyEdges = (edgeId) => neighbours[edgeId];
 
+  /** Vias cujo eixo passa pelas células em volta de (x, z). Devolve sempre o mesmo array (não aloca). */
+  const around = [];
+  function edgesAround(x, z) {
+    stamp++;
+    around.length = 0;
+    const ci = cellIndex(x);
+    const cj = cellIndex(z);
+    for (let i = Math.max(ci - 1, 0); i <= Math.min(ci + 1, cellsPerSide - 1); i++) {
+      for (let j = Math.max(cj - 1, 0); j <= Math.min(cj + 1, cellsPerSide - 1); j++) {
+        for (const id of cells[i * cellsPerSide + j]) {
+          if (stamps[id] === stamp) continue;
+          stamps[id] = stamp;
+          around.push(id);
+        }
+      }
+    }
+    return around;
+  }
+
   const canTravel = (edgeId, fromNodeId) => !edges[edgeId].oneWay || edges[edgeId].a === fromNodeId;
   const otherEnd = (edgeId, nodeId) => (edges[edgeId].a === nodeId ? edges[edgeId].b : edges[edgeId].a);
 
@@ -161,7 +180,7 @@ export function createGraph(city) {
     return { points: points.reverse(), steps: steps.reverse(), length: best };
   }
 
-  return { nearestEdge, projectOnEdge, nearbyEdges, route, canTravel, otherEnd, pointOnEdge };
+  return { nearestEdge, projectOnEdge, nearbyEdges, edgesAround, route, canTravel, otherEnd, pointOnEdge };
 }
 
 /** Fila de prioridade mínima (heap binário) de pares (id, prioridade). */
