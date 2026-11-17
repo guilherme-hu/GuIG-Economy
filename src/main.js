@@ -72,6 +72,18 @@ input.onAction((action) => {
   screens.show('pausa');
 });
 events.on('bump', () => hud.flash('batida'));
+events.on('fine', () => hud.flash('radar'));
+
+// Fiscalização: insistir na calçada rende multa, com intervalo entre uma e outra.
+const sidewalk = { time: 0, cooldown: 0 };
+function patrolSidewalk(dt) {
+  sidewalk.cooldown -= dt;
+  sidewalk.time = bike.onSidewalk && Math.abs(bike.speed) > 1 ? sidewalk.time + dt : 0;
+  if (sidewalk.time < config.rules.sidewalkGrace || sidewalk.cooldown > 0) return;
+  sidewalk.cooldown = config.rules.sidewalkCooldown;
+  economy.chargeFine(config.rules.fineSidewalk, 'calcada');
+  events.emit('fine', { kind: 'calcada', amount: config.rules.fineSidewalk });
+}
 
 stage.setFog(!debugMap);
 stage.onResize(aerial.resize);
@@ -92,6 +104,7 @@ const loop = createLoop({
     bike.step(input.state, dt);
     economy.tick(dt);
     if (bike.wallHit) events.emit('bump', { kind: 'parede', speed: bike.wallHit });
+    patrolSidewalk(dt);
   },
   render(alpha, frameDt) {
     const riding = sim.phase === 'turno' && !debugMap;

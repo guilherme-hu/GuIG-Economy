@@ -17,6 +17,7 @@ export function createBike(config, { city, graph }, spawn) {
     road: null, // último graph.nearestEdge
     distance: 0, // metros rodados (combustível)
     wallHit: 0, // velocidade do impacto com parede neste passo (0 = nenhum)
+    onSidewalk: false,
     frozen: false, // true após acidente: ignora comandos
 
     reset(at) {
@@ -34,6 +35,7 @@ export function createBike(config, { city, graph }, spawn) {
     step(input, dt) {
       const control = bike.frozen ? IDLE : input;
       accelerate(control, dt);
+      if (bike.onSidewalk) bike.speed = approach(bike.speed, clamp(bike.speed, -config.sidewalkSpeed, config.sidewalkSpeed), config.sidewalkBrake * dt);
       turn(control, dt);
       move(dt);
       keepOnRoad();
@@ -79,6 +81,7 @@ export function createBike(config, { city, graph }, spawn) {
     if (!road) return;
     const edge = city.edges[road.edge];
     const limit = edge.halfWidth + (edge.bridge ? config.bridgeMargin : config.offRoadMargin) - bike.radius;
+    bike.onSidewalk = road.dist > edge.halfWidth + bike.radius && !insideJunction(edge);
     if (road.dist <= limit) return;
 
     // Empurra de volta para o limite, ao longo da normal que sai do eixo da via.
@@ -95,9 +98,19 @@ export function createBike(config, { city, graph }, spawn) {
     if (headOn <= 0) return;
     const impact = Math.abs(bike.speed) * headOn;
     if (impact > config.wallHitMinSpeed) bike.wallHit = impact;
-    bike.speed *= 1 - headOn * (1 - config.wallBounce);
-    const cross = dirX * nz - dirZ * nx; // sinal: para que lado fica a tangente
-    bike.heading = wrapAngle(bike.heading + Math.sign(cross || 1) * headOn * config.wallDeflect * Math.sign(bike.speed || 1));
+    // Sobra a parte da velocidade que corre ao longo da parede, e o guidão vira para longe dela:
+    // a moto raspa e segue, em vez de ficar encalhada de frente para o muro.
+    bike.speed *= Math.max(config.wallBounce, Math.sqrt(1 - headOn * headOn));
+    const cross = dirX * nz - dirZ * nx; // > 0: a parede está no sentido em que o heading cresce
+    bike.heading = wrapAngle(bike.heading - Math.sign(cross || 1) * headOn * config.wallDeflect);
+  }
+
+  /** Dentro da área de um cruzamento não há calçada no caminho. */
+  function insideJunction(edge) {
+    return [edge.a, edge.b].some((id) => {
+      const node = city.nodes[id];
+      return Math.hypot(bike.x - node.x, bike.z - node.z) < node.radius + bike.radius;
+    });
   }
 
   bike.reset(spawn);

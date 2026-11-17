@@ -77,8 +77,8 @@ function fitBuilding(lot, models) {
   const pool = fitting.length ? fitting : [options.reduce((best, option) => (option.fit > best.fit ? option : best))];
   const { path, fit } = pool[lot.seed % pool.length];
   const scale = base * Math.min(Math.max(fit, FIT.min), FIT.max);
-  // Os modelos têm a frente em +Z; `heading` é para onde a fachada olha.
-  return [path, standing(models.get(path).box, lot.x, lot.z, Math.PI / 2 - lot.heading, scale)];
+  // Nos kits da Kenney a fachada (vitrine, garagem) fica em −Z; `heading` é para onde ela olha.
+  return [path, standing(models.get(path).box, lot.x, lot.z, -Math.PI / 2 - lot.heading, scale)];
 }
 
 /** Matriz que põe o modelo de pé no chão em (x, z), centrado, girado em torno de Y e escalado. */

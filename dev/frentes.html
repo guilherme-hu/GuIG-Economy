@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#888"><canvas id="c"></canvas>
+<script type="module">
+// Depuração: cada modelo visto de +Z, +X, −Z, −X (nessa ordem), para achar o lado da fachada.
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const L = (f, p, s) => [...s].map((c) => `${f}/${p}${c}`);
+const keys = [...L('commercial','building-','abcdefghiklm'), ...L('commercial','building-skyscraper-','abcde'), ...L('suburban','building-type-','abcdfgkmqs'), ...L('industrial','building-','abegkmprst')];
+const T = 84, W = T * 8, H = T * Math.ceil(keys.length / 2);
+const r = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+r.setSize(W, H); r.setScissorTest(true); r.setClearColor(0x556677);
+const light = new THREE.HemisphereLight(0xffffff, 0x777777, 3);
+const cam = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+const loader = new GLTFLoader();
+const models = await Promise.all(keys.map((k) => loader.loadAsync(`/assets/models/${k}.glb`)));
+models.forEach((g, i) => {
+  const scene = new THREE.Scene(); scene.add(light.clone(), g.scene);
+  const box = new THREE.Box3().setFromObject(g.scene); const c = box.getCenter(new THREE.Vector3()); const s = box.getSize(new THREE.Vector3());
+  const d = Math.max(s.x, s.y, s.z) * 2.2;
+  [[0, 1], [1, 0], [0, -1], [-1, 0]].forEach(([x, z], v) => {
+    const px = ((i % 2) * 4 + v) * T, py = H - (Math.floor(i / 2) + 1) * T;
+    r.setViewport(px + 2, py + 2, T - 4, T - 4); r.setScissor(px + 2, py + 2, T - 4, T - 4);
+    cam.position.set(c.x + x * d, c.y + d * 0.15, c.z + z * d); cam.lookAt(c); r.render(scene, cam);
+  });
+});
+</script>

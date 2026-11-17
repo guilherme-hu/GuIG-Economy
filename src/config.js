@@ -82,7 +82,9 @@ export const config = {
     bridgeMargin: 0.4,
     wallBounce: 0.2, // fração da velocidade que sobra numa batida de frente em prédio
     wallHitMinSpeed: 3,
-    wallDeflect: 0.12, // rad: desvio do guidão ao raspar na parede
+    wallDeflect: 0.12, // rad por passo: quanto o guidão vira para longe da parede
+    sidewalkSpeed: kmh(18), // na calçada a moto não passa disso
+    sidewalkBrake: 14,
   },
 
   signals: {
@@ -108,6 +110,9 @@ export const config = {
     crashSpeed: kmh(20), // velocidade relativa acima disso = fim de jogo
     fineRedLight: 60,
     fineWrongWay: 30,
+    fineSidewalk: 45,
+    sidewalkGrace: 1.2, // segundos na calçada antes da multa
+    sidewalkCooldown: 8, // intervalo mínimo entre multas de calçada
   },
 
   jobs: {
