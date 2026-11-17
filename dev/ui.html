@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GuIG Economy · demonstração da interface</title>
+    <link rel="stylesheet" href="../src/ui/base.css" />
+    <link rel="stylesheet" href="../src/ui/tokens.css" />
+    <link rel="stylesheet" href="../src/ui/hud.css" />
+    <link rel="stylesheet" href="../src/ui/phone/phone.css" />
+    <link rel="stylesheet" href="../src/ui/screens.css" />
+    <style>
+      /* Fundos que imitam a cena 3D: entardecer claro-quente e noite */
+      #cena {
+        position: fixed;
+        inset: 0;
+      }
+      #cena[data-bg='tarde'] {
+        background: linear-gradient(180deg, #ffd9a0 0%, #ffb37a 38%, #f08d6b 55%, #b9a08c 56%, #d8c7ae 100%);
+      }
+      #cena[data-bg='noite'] {
+        background: radial-gradient(circle at 30% 62%, #ff5a4e33 0 6%, transparent 14%),
+          radial-gradient(circle at 62% 58%, #c8ff2e22 0 5%, transparent 12%),
+          linear-gradient(180deg, #070913 0%, #141a35 50%, #1d1f2b 56%, #0d0f14 100%);
+      }
+      #painel {
+        position: fixed;
+        left: 190px;
+        bottom: 8px;
+        z-index: 100;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        max-width: 36vw;
+        padding: 6px;
+        border-radius: 8px;
+        background: #000a;
+        font: 11px system-ui;
+      }
+      #painel button {
+        padding: 3px 6px;
+        border: 0;
+        border-radius: 4px;
+        background: #333;
+        color: #eee;
+        font: inherit;
+        cursor: pointer;
+      }
+      /* ?estatico: sem animação, para screenshots em aba de fundo (onde o relógio de animação anda devagar) */
+      .estatico *,
+      .estatico *::before,
+      .estatico *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    </style>
+    <script>
+      if (location.search.includes('estatico')) document.documentElement.classList.add('estatico');
+    </script>
+  </head>
+  <body>
+    <div id="cena" data-bg="tarde"></div>
+    <div id="ui"></div>
+    <div id="painel"></div>
+    <script type="module" src="./ui.js"></script>
+  </body>
+</html>

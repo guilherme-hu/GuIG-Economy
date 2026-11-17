@@ -12,7 +12,12 @@ import { createGraph } from './sim/city/graph.js';
 import { createScene } from './render/scene.js';
 import { createAssets } from './render/assets.js';
 import { createCityView } from './render/cityView.js';
-import { createAerialCamera } from './render/camera.js';
+import { createAerialCamera, createChaseCamera } from './render/camera.js';
+import { createBikeView } from './render/bikeView.js';
+import { createBike } from './sim/bike.js';
+import { createEconomy } from './sim/economy.js';
+import { createHud } from './ui/hud.js';
+import { createScreens } from './ui/screens.js';
 
 const canvas = document.getElementById('jogo');
 const params = new URLSearchParams(location.search);
@@ -24,7 +29,12 @@ const input = createInput();
 
 const city = generateCity(config.city, rng.fork('cidade'));
 const graph = createGraph(city);
-const sim = { time: 0, phase: 'menu', city, graph };
+const home = city.pois[city.homeId];
+const homeDir = city.edges[home.edge].dir;
+const spawn = { ...graph.pointOnEdge(home.edge, home.t, home.side * config.city.street.laneWidth * 0.5), heading: Math.atan2(homeDir.z, homeDir.x) };
+const bike = createBike(config.bike, { city, graph }, spawn);
+const economy = createEconomy(config.economy, events);
+const sim = { time: 0, phase: 'menu', city, graph, bike, economy };
 
 const stage = createScene(canvas);
 const cityView = createCityView({ city, config: config.city, scene: stage.scene, assets: createAssets() });
@@ -35,6 +45,34 @@ const aerial = createAerialCamera({
   interactive: debugMap,
   pose: debugPose(params.get('cam')),
 });
+const bikeView = createBikeView({ scene: stage.scene, bike });
+const chase = createChaseCamera({ bike, maxSpeed: config.bike.maxSpeed });
+stage.onResize(chase.resize);
+
+const ui = document.getElementById('ui');
+const hud = createHud(ui);
+const screens = createScreens(ui, { onStart: startShift, onResume: resume, onNextDay: startShift, onRestart: () => location.reload() });
+hud.setVisible(false);
+if (!debugMap) screens.show('menu');
+
+function startShift() {
+  sim.phase = 'turno';
+  economy.startDay();
+  screens.hide();
+  hud.setVisible(true);
+}
+function resume() {
+  screens.hide();
+  loop.timeScale = 1;
+}
+input.onAction((action) => {
+  if (action !== 'pause' || sim.phase !== 'turno') return;
+  if (screens.current === 'pausa') return resume();
+  loop.timeScale = 0;
+  screens.show('pausa');
+});
+events.on('bump', () => hud.flash('batida'));
+
 stage.setFog(!debugMap);
 stage.onResize(aerial.resize);
 stage.resize();
@@ -50,10 +88,18 @@ function debugPose(text) {
 const loop = createLoop({
   step(dt) {
     sim.time += dt;
+    if (sim.phase !== 'turno') return;
+    bike.step(input.state, dt);
+    economy.tick(dt);
+    if (bike.wallHit) events.emit('bump', { kind: 'parede', speed: bike.wallHit });
   },
   render(alpha, frameDt) {
-    aerial.update(frameDt);
-    stage.render(aerial.camera);
+    const riding = sim.phase === 'turno' && !debugMap;
+    const view = riding ? chase : aerial;
+    view.update(frameDt);
+    bikeView.update();
+    if (riding) hud.update(sim);
+    stage.render(view.camera);
   },
 });
 loop.start();
@@ -66,10 +112,20 @@ window.__game = {
   rng,
   input,
   loop,
-  view: { stage, cityView, aerial },
+  view: { stage, cityView, aerial, chase, bikeView },
+  start: startShift,
+  /** Põe a moto no cruzamento `nodeId`, parada. */
+  teleport(nodeId) {
+    const node = city.nodes[nodeId];
+    bike.reset({ x: node.x, z: node.z, heading: bike.heading });
+    chase.snap();
+  },
   state: () => ({
     time: sim.time,
     phase: sim.phase,
+    bike: { x: bike.x, z: bike.z, heading: bike.heading, kmh: bike.speed * 3.6, road: bike.road?.edge },
+    money: economy.money,
+    rating: economy.rating,
     city: { nodes: city.nodes.length, edges: city.edges.length, pois: city.pois.length, lots: city.lots.length },
     view: { buildingsLoaded: cityView.loaded, drawCalls: stage.renderer.info.render.calls, triangles: stage.renderer.info.render.triangles },
   }),

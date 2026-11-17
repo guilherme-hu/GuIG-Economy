@@ -1,0 +1,363 @@
+/* HUD de pilotagem. Sempre sobre placas escuras translúcidas: lê no entardecer claro e na noite. */
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity var(--base) linear;
+}
+
+.hud[data-visible='false'] {
+  opacity: 0;
+}
+
+.hud__plate {
+  border-radius: 1em;
+  background: var(--plate);
+  -webkit-backdrop-filter: var(--plate-blur);
+  backdrop-filter: var(--plate-blur);
+  box-shadow: inset 0 0 0 1px var(--plate-border), var(--shadow-plate);
+}
+
+.hud__left {
+  position: absolute;
+  top: 1.25em;
+  left: 1.25em;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6em;
+}
+
+/* ───────────── Turno · dinheiro · nota ───────────── */
+.hud__status {
+  display: flex;
+  align-items: center;
+  padding: 0.5em 0.3em;
+  border-radius: var(--r-full);
+}
+
+.hud__stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0 0.8em;
+  font-size: 0.95em;
+  line-height: 1.2;
+}
+
+.hud__stat + .hud__stat {
+  box-shadow: -1px 0 0 var(--plate-border);
+}
+
+.hud__stat b {
+  font-weight: 700;
+}
+
+.hud__stat svg {
+  width: 1.05em;
+  height: 1.05em;
+  color: var(--ink-300);
+}
+
+.hud__stat--rating svg {
+  color: var(--amber-500);
+}
+
+.hud__stat[data-ending] {
+  color: var(--coral-400);
+  animation: hud-pulse 1s ease-in-out infinite;
+}
+
+.hud__stat[data-ending] svg {
+  color: inherit;
+}
+
+@keyframes hud-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ───────────── Cronômetro da entrega ───────────── */
+.hud__job {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  width: 16.5em;
+  padding: 0.75em 0.95em 0.9em;
+}
+
+.hud__job-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  min-width: 0;
+}
+
+.hud__job-phase {
+  flex: none;
+  padding: 0.2em 0.6em;
+  border-radius: var(--r-full);
+  background: var(--amber-500);
+  color: var(--ink-900);
+  font-size: 0.68em;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hud__job[data-phase='entrega'] .hud__job-phase {
+  background: var(--coral-500);
+}
+
+.hud__job-dest {
+  overflow: hidden;
+  color: var(--ink-200);
+  font-size: 0.88em;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud__job-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+}
+
+.hud__job-time {
+  font-size: 2.5em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  transition: color var(--base) linear;
+}
+
+.hud__job-late {
+  color: var(--coral-400);
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
+.hud__job-pay {
+  margin-left: auto;
+  color: var(--lime-500);
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+.hud__job .bar {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.hud__job[data-heat='warm'] .hud__job-time {
+  color: var(--amber-500);
+}
+
+.hud__job[data-heat='warm'] .bar i {
+  background: var(--amber-500);
+}
+
+.hud__job[data-heat='hot'] .hud__job-time,
+.hud__job[data-heat='late'] .hud__job-time {
+  color: var(--coral-500);
+  animation: hud-pulse 0.9s ease-in-out infinite;
+}
+
+.hud__job[data-heat='hot'] .bar i {
+  background: var(--coral-500);
+}
+
+.hud__job[data-heat='late'] {
+  box-shadow: inset 0 0 0 1px rgb(255 90 78 / 0.55), var(--shadow-plate);
+}
+
+/* ───────────── Próxima curva ───────────── */
+.hud__nav {
+  position: absolute;
+  top: 1.25em;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 0.95em;
+  max-width: 24em;
+  padding: 0.55em 1.3em 0.55em 0.55em;
+  border-radius: 1.2em;
+  background: var(--plate-strong);
+  transform: translateX(-50%);
+}
+
+.hud__nav-arrow {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 4.3em;
+  height: 4.3em;
+  border-radius: 0.8em;
+  background: var(--lime-500);
+  color: var(--ink-900);
+}
+
+.hud__nav-arrow span {
+  display: none;
+}
+
+.hud__nav-arrow svg {
+  display: block;
+  width: 3em;
+  height: 3em;
+}
+
+.hud__nav[data-turn='esquerda'] [data-turn-icon='esquerda'],
+.hud__nav[data-turn='direita'] [data-turn-icon='direita'],
+.hud__nav[data-turn='reto'] [data-turn-icon='reto'],
+.hud__nav[data-turn='retorno'] [data-turn-icon='retorno'],
+.hud__nav[data-turn='chegada'] [data-turn-icon='chegada'] {
+  display: block;
+}
+
+.hud__nav[data-near] .hud__nav-arrow {
+  animation: nav-near 0.7s ease-in-out infinite;
+}
+
+@keyframes nav-near {
+  50% {
+    background: var(--paper);
+    transform: scale(1.06);
+  }
+}
+
+.hud__nav-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  min-width: 5.5em;
+}
+
+.hud__nav-distance {
+  font-size: 2.2em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.hud__nav-street {
+  overflow: hidden;
+  color: var(--ink-200);
+  font-size: 0.95em;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ───────────── Velocímetro ───────────── */
+.hud__speed {
+  position: absolute;
+  left: 1.25em;
+  bottom: 1.25em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 9.5em;
+  height: 9.5em;
+  border-radius: 50%;
+  background: var(--plate);
+  -webkit-backdrop-filter: var(--plate-blur);
+  backdrop-filter: var(--plate-blur);
+  box-shadow: inset 0 0 0 1px var(--plate-border), var(--shadow-plate);
+}
+
+.hud__speed svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(135deg);
+}
+
+.hud__speed circle {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.hud__speed-track {
+  stroke: rgb(255 255 255 / 0.13);
+}
+
+.hud__speed-arc {
+  stroke: var(--lime-500);
+  transition: stroke var(--base) linear;
+}
+
+.hud__speed[data-fast] .hud__speed-arc {
+  stroke: var(--coral-500);
+}
+
+.hud__speed-value {
+  margin-top: 0.12em;
+  font-size: 3.3em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.hud__speed-unit {
+  color: var(--ink-300);
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* ───────────── Clarões ───────────── */
+.hud__flash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.hud__flash--radar {
+  background: #fff;
+}
+
+.hud__flash--radar.is-on {
+  animation: flash-radar 750ms linear;
+}
+
+/* dois disparos, como radar de verdade */
+@keyframes flash-radar {
+  0% {
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.95;
+  }
+  20% {
+    opacity: 0.1;
+  }
+  28% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.hud__flash--batida {
+  background: radial-gradient(ellipse at center, rgb(255 90 78 / 0) 35%, rgb(214 30 20 / 0.55) 75%, rgb(120 8 4 / 0.9) 100%);
+}
+
+.hud__flash--batida.is-on {
+  animation: flash-batida 900ms var(--ease-out);
+}
+
+@keyframes flash-batida {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
