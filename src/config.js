@@ -111,18 +111,31 @@ export const config = {
     // Comportamento no trânsito (só vale quando o piloto recebe traffic/signals):
     obeyLights: 'sempre', // 'sempre' | 'radar' (fura onde não há radar) | 'nunca'
     carLook: 45, // m à frente em que ele procura veículos
-    carClearance: 0.9, // m de folga lateral: abaixo disso o veículo está no caminho
+    carClearance: 0.6, // m de folga lateral (o raio da moto e um pouco): abaixo disso o veículo está no caminho
     followGap: 3, // m que ele deixa atrás do veículo da frente, parado
     followTime: 1, // s de distância para o veículo da frente, em movimento
     commitDistance: 5, // m antes da linha em que, com o sinal aberto, ele se compromete a passar
     crossSpeed: kmh(30), // velocidade máxima para atravessar um cruzamento
+    sampleStep: 1.5, // m entre os pontos da rota em que ele procura veículos
+    laneSplit: true, // costura no corredor quando um carro lento bloqueia a faixa
+    splitLook: 25, // m à frente em que um carro lento o faz ir para o corredor
+    splitLine: 0.5, // m da faixa do meio onde ele passa no corredor
+    splitHold: 2, // s que ele fica no corredor depois de passar o último carro
+    shiftRate: 2, // m/s de deslocamento lateral ao entrar e sair do corredor
+    splitSpeed: kmh(40), // velocidade máxima costurando no corredor
+    lineTolerance: 0.3, // m: mais longe que isso da linha que está seguindo, ele ainda está no meio da manobra
+    impatience: 6, // s parado atrás de um veículo parado até tentar contornar
+    nudgeTime: 3, // s contornando devagar
+    nudgeSpeed: kmh(8),
     yieldToTraffic: true, // dá a preferência a quem já está atravessando o cruzamento
     yieldLook: 25, // m antes da linha em que ele começa a olhar o cruzamento
     // Perfis de direção (sobrepõem os valores acima): usados pela simulação e pela flag `?bot=<perfil>`.
     profiles: {
-      cauteloso: {}, // respeita sinal e preferência, anda no limite da via
-      apressado: { cruise: 0.9 * 1.4, cornerGrip: 8, brake: 8.4, obeyLights: 'radar', followGap: 1.5, followTime: 0.3, carClearance: 0.6, crossSpeed: Infinity }, // fura onde não há radar
-      kamikaze: { cruise: 0.9 * 1.4, cornerGrip: 8, brake: 8.4, obeyLights: 'nunca', yieldToTraffic: false, followGap: 1.5, followTime: 0.3, carClearance: 0.6, crossSpeed: Infinity },
+      cauteloso: { laneSplit: false }, // respeita sinal e preferência, anda no limite da via, não costura
+      // Jogando bem: rápido, costura no corredor, mas respeita sinal e cruza com cuidado. É a referência de "jogador bom".
+      bom: { cruise: 0.9 * 1.15, crossSpeed: kmh(40), followTime: 0.6, cornerGrip: 6, brake: 7.5 },
+      apressado: { cruise: 0.9 * 1.4, cornerGrip: 8, brake: 8.4, obeyLights: 'radar', followGap: 1.5, followTime: 0.4, crossSpeed: kmh(55), splitSpeed: kmh(55) }, // fura onde não há radar
+      kamikaze: { cruise: 0.9 * 1.4, cornerGrip: 8, brake: 8.4, obeyLights: 'nunca', yieldToTraffic: false, followGap: 1.5, followTime: 0.3, crossSpeed: Infinity, splitSpeed: kmh(70) },
     },
   },
 
@@ -168,15 +181,15 @@ export const config = {
     motoLine: 0.7, // m à direita da faixa pintada: é por ali que elas costuram
     corridorFit: 0.9, // fração da largura somada que conta como "no caminho" (deixa a moto passar raspando)
     fleet: [
-      { type: 'carro', model: 'cars/sedan', length: 4.0, width: 2.2 },
-      { type: 'carro', model: 'cars/sedan-sports', length: 4.0, width: 2.2 },
-      { type: 'carro', model: 'cars/hatchback-sports', length: 3.9, width: 2.2 },
-      { type: 'carro', model: 'cars/suv', length: 4.2, width: 2.3 },
-      { type: 'carro', model: 'cars/suv-luxury', length: 4.3, width: 2.3 },
-      { type: 'carro', model: 'cars/taxi', length: 4.2, width: 2.3 },
-      { type: 'carro', model: 'cars/van', length: 4.5, width: 2.4 },
-      { type: 'caminhao', model: 'cars/truck', length: 5.0, width: 2.4 },
-      { type: 'caminhao', model: 'cars/delivery', length: 5.8, width: 2.5 },
+      { type: 'carro', model: 'cars/sedan', length: 4.0, width: 1.9 },
+      { type: 'carro', model: 'cars/sedan-sports', length: 4.0, width: 1.9 },
+      { type: 'carro', model: 'cars/hatchback-sports', length: 3.9, width: 1.9 },
+      { type: 'carro', model: 'cars/suv', length: 4.2, width: 2 },
+      { type: 'carro', model: 'cars/suv-luxury', length: 4.3, width: 2 },
+      { type: 'carro', model: 'cars/taxi', length: 4.2, width: 2 },
+      { type: 'carro', model: 'cars/van', length: 4.5, width: 2 },
+      { type: 'caminhao', model: 'cars/truck', length: 5.0, width: 2.2 },
+      { type: 'caminhao', model: 'cars/delivery', length: 5.8, width: 2.2 },
     ],
   },
 

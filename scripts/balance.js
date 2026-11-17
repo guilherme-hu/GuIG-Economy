@@ -2,7 +2,10 @@
  * Balanceamento: um robô joga dias inteiros na cidade de verdade — com trânsito, semáforos, radares,
  * multas e batidas — usando o piloto automático, um perfil de direção e uma estratégia de escolha de corridas.
  *
- *   node scripts/balance.js [dias=3] [perfis=cauteloso,apressado,kamikaze] [sementes=1]
+ *   node scripts/balance.js [dias=3] [perfis=cauteloso,bom,apressado,kamikaze] [sementes=1]
+ *
+ * Um perfil com "+sinais" (ex.: bom+sinais) roda com semáforos e radares, mas sem carros: mostra o tempo que se
+ * perde só com sinais e cruzamentos — o que sobra para quem costura bem no trânsito.
  */
 import { config } from '../src/config.js';
 import { createRng } from '../src/core/rng.js';
@@ -20,7 +23,7 @@ import { createRules } from '../src/sim/rules.js';
 
 const DT = 1 / 60;
 const days = Number(process.argv[2] ?? 3);
-const profileNames = (process.argv[3] ?? 'cauteloso,apressado,kamikaze').split(',');
+const profileNames = (process.argv[3] ?? 'cauteloso,bom,apressado,kamikaze').split(',');
 const seeds = Number(process.argv[4] ?? 1);
 
 const ap = config.autopilot;
@@ -31,7 +34,9 @@ const strategies = {
   primeira: (offers) => offers[0],
 };
 
-function playDays(profile, choose, seed) {
+function playDays(spec, choose, seed) {
+  const [profile, mode] = spec.split('+');
+  const withCars = mode !== 'sinais';
   const city = generateCity(config.city, createRng(config.seed).fork('cidade'));
   const graph = createGraph(city);
   const run = createRng(seed); // o que muda entre sementes: ofertas, trânsito e radares
@@ -44,9 +49,9 @@ function playDays(profile, choose, seed) {
   const jobs = createJobs({ city, graph, rng: run.fork('ofertas'), events, economy, config: config.jobs });
   const shift = createShift({ economy, jobs, events, config: config.shift });
   const signals = createSignals(city, config.signals);
-  const traffic = createTraffic({ city, graph, signals, rng: run.fork('trânsito'), config: config.traffic });
+  const traffic = withCars ? createTraffic({ city, graph, signals, rng: run.fork('trânsito'), config: config.traffic }) : { vehicles: [], step() {} };
   const rules = createRules({ city, signals, traffic, bike, economy, events, rng: run.fork('radares'), config: config.rules });
-  const pilot = createAutopilot({ city, graph, bike, config: { ...ap, ...profiles[profile] }, traffic, signals, cameras: rules.cameras });
+  const pilot = createAutopilot({ city, graph, bike, config: { ...ap, ...profiles[profile] }, traffic: withCars ? traffic : null, signals, cameras: rules.cameras });
 
   const results = [];
   let today = { infractions: {}, damages: 0 };
@@ -119,7 +124,7 @@ for (const profile of profileNames) {
   for (const [name, choose] of Object.entries(strategies)) {
     for (let seed = 1; seed <= seeds; seed++) {
       for (const [i, r] of playDays(profile, choose, seed).entries()) {
-        const head = `${profile.padEnd(10)} ${name.padEnd(9)} ${String(seed).padStart(3)} d${i + 1}`;
+        const head = `${profile.padEnd(16)} ${name.padEnd(9)} ${String(seed).padStart(3)} d${i + 1}`;
         if (r.over) {
           console.log(`${head}  FIM: ${r.over}${r.crash ? ` (${r.crash})` : ''} · aos ${r.minutes.toFixed(1)} min · ${r.deliveries} entregas, ${r.late} atrasadas, ${r.cancelled} canceladas · nota ${r.rating} · ${list(r.infractions)} · ${r.damages} conserto(s)`);
           continue;

@@ -18,12 +18,24 @@ export function createAutopilot({ city, graph, bike, config: cfg, traffic = null
   let stalled = 0; // segundos parado querendo andar
   let backingUp = 0; // segundos de ré que faltam para desencalhar
   const aim = { x: 0, z: 0 };
+  const aimDir = { x: 1, z: 0 }; // direção do trecho da rota onde está a mira
+  let shift = 0; // m para a esquerda da faixa: > 0 quando está costurando no corredor
+  let splitTimer = 0; // s que ele ainda fica no corredor depois de passar o último carro
+  let splitTarget = 0; // desvio lateral do corredor, fixado ao entrar nele
+  let shiftGoal = 0; // para onde o desvio está indo agora (0 = faixa)
+  let waitedOn = 0; // s parado atrás do mesmo veículo parado
+  let ignored = null; // veículo que ele decidiu contornar devagar (impasse)
+  let ignoreLeft = 0;
+  // Pontos da rota à frente (com e sem o desvio do corredor), recalculados a cada passo.
+  const look = { lane: makeSamples(), split: makeSamples() };
 
   const pilot = {
     active: false,
     arrived: false,
     wanted: 0, // velocidade que ele está tentando manter, em m/s
     limitedBy: 'via', // o que limita essa velocidade agora: 'via', 'veículo à frente' ou 'cruzamento'
+    blocker: null, // o veículo que o está segurando, se houver
+    splitting: false, // costurando no corredor
     input,
 
     /** Passa a seguir a rota (o retorno de `graph.route`). */
@@ -39,6 +51,8 @@ export function createAutopilot({ city, graph, bike, config: cfg, traffic = null
       turningAround = 0;
       stalled = 0;
       backingUp = 0;
+      shift = 0;
+      splitTimer = 0;
       pilot.active = path.length > 1;
       pilot.arrived = false;
     },
@@ -69,7 +83,9 @@ export function createAutopilot({ city, graph, bike, config: cfg, traffic = null
         return input;
       }
       const pace = Math.abs(bike.speed);
+      updateSplit(dt);
       aimAt(cfg.lookAhead + cfg.lookAheadPerSpeed * pace);
+      if (shift) shiftLeft(aim, aimDir, shift);
       const error = wrap(Math.atan2(aim.z - bike.z, aim.x - bike.x) - bike.heading);
       // Alvo atrás da moto: escolhe um lado e mantém até completar o retorno, senão o erro fica trocando de sinal.
       if (Math.abs(error) < cfg.turnAroundDone) turningAround = 0;
@@ -80,9 +96,9 @@ export function createAutopilot({ city, graph, bike, config: cfg, traffic = null
       const cornering = limit * (1 - cfg.cornerSlowdown * Math.min(1, Math.abs(error) / cfg.cornerAngle));
       // Trânsito e sinal podem pedir parada total, então ficam fora do piso `crawl`.
       const road = Math.max(Math.min(cornering, plannedSpeed(left)), cfg.crawl);
-      const ahead = vehicleAheadSpeed();
+      const ahead = vehicleAheadSpeed(dt);
       const junction = junctionSpeed();
-      const wanted = Math.min(road, ahead, junction);
+      const wanted = Math.min(road, ahead, junction, ignoreLeft > 0 ? cfg.nudgeSpeed : Infinity, pilot.splitting ? cfg.splitSpeed : Infinity);
       pilot.wanted = wanted;
       pilot.limitedBy = wanted === road ? 'via' : wanted === ahead ? 'veículo à frente' : 'cruzamento';
       input.brake = pace > wanted + 4 || (wanted < cfg.crawl && pace > wanted + 0.3); // para de verdade, sem ir arrastando
@@ -93,26 +109,120 @@ export function createAutopilot({ city, graph, bike, config: cfg, traffic = null
     },
   };
 
-  /** Velocidade que ainda permite frear atrás do veículo mais próximo no corredor à frente. */
-  function vehicleAheadSpeed() {
+  /**
+   * Velocidade que ainda permite frear atrás do primeiro veículo no caminho. "No caminho" é medido ao longo
+   * da rota (com o desvio do corredor, se houver), não em linha reta: assim ele enxerga o carro parado logo
+   * depois da curva. Se ficar muito tempo parado atrás de um veículo parado, contorna devagar (impasse).
+   */
+  function vehicleAheadSpeed(dt) {
+    pilot.blocker = null;
     if (!traffic) return Infinity;
-    const fx = Math.cos(bike.heading);
-    const fz = Math.sin(bike.heading);
-    let speed = Infinity;
-    for (const v of traffic.vehicles) {
-      // Quem vem andando no sentido contrário está na outra mão; parado no caminho (numa conversão), conta.
-      if (!v.active || (Math.cos(v.heading - bike.heading) < -0.5 && v.speed > 1)) continue;
-      const dx = v.x - bike.x;
-      const dz = v.z - bike.z;
-      const along = dx * fx + dz * fz;
-      if (along <= 0 || along > cfg.carLook) continue;
-      if (Math.abs(dx * fz - dz * fx) > v.width / 2 + cfg.carClearance) continue;
-      const gap = along - v.length / 2 - cfg.followGap - Math.abs(bike.speed) * cfg.followTime; // distância em tempo, não só em metros
-      const theirs = Math.max(0, Math.cos(v.heading - bike.heading) * v.speed); // quanto ele anda no mesmo sentido
-      speed = Math.min(speed, Math.sqrt(theirs * theirs + 2 * cfg.brake * Math.max(0, gap)));
+    const pace = Math.abs(bike.speed);
+    ignoreLeft = Math.max(0, ignoreLeft - dt);
+    if (!ignoreLeft) ignored = null;
+    // No meio da manobra (entrando ou saindo do corredor), vale o que estiver mais perto na faixa ou no corredor:
+    // a moto ainda não chegou na linha nova e bateria no carro que está "fora do caminho" só depois da manobra.
+    // A moto segue a mira com atraso: vale onde ela está de fato, não só para onde o desvio já foi.
+    const offLine = Math.hypot(bike.x - look.split.x[0], bike.z - look.split.z[0]) > cfg.lineTolerance;
+    const shifting = Math.abs(shift - shiftGoal) > 0.1 || offLine;
+    const inLane = shifting ? firstInPath(look.lane, ignored) : null;
+    const inSplit = firstInPath(look.split, ignored);
+    const hit = inLane && (!inSplit || inLane.distance < inSplit.distance) ? inLane : inSplit;
+    if (!hit) {
+      waitedOn = 0;
+      return Infinity;
     }
-    return speed;
+    const { vehicle, distance } = hit;
+    pilot.blocker = vehicle;
+    waitedOn = pace < 0.3 && vehicle.speed < 0.3 ? waitedOn + dt : 0;
+    if (waitedOn > cfg.impatience) {
+      ignored = vehicle;
+      ignoreLeft = cfg.nudgeTime;
+      waitedOn = 0;
+    }
+    const gap = distance - cfg.followGap - pace * cfg.followTime; // distância em tempo, não só em metros
+    const theirs = Math.max(0, Math.cos(vehicle.heading - bike.heading) * vehicle.speed); // quanto ele anda no mesmo sentido
+    return Math.sqrt(theirs * theirs + 2 * cfg.brake * Math.max(0, gap));
   }
+
+  /** O primeiro veículo cuja lataria encosta na linha de pontos `samples` (e a que distância, ao longo da rota). */
+  function firstInPath(samples, skip, onlyCars = false) {
+    let best = null;
+    for (const v of traffic.vehicles) {
+      if (!v.active || v === skip || (onlyCars && v.reckless)) continue;
+      // Quem vem andando no sentido contrário está na outra mão; parado no caminho (numa conversão), conta.
+      if (Math.cos(v.heading - bike.heading) < -0.5 && v.speed > 1) continue;
+      if (Math.abs(v.x - bike.x) > cfg.carLook + 6 || Math.abs(v.z - bike.z) > cfg.carLook + 6) continue;
+      const fx = Math.cos(v.heading);
+      const fz = Math.sin(v.heading);
+      for (let i = 0; i < samples.count; i++) {
+        if (best && samples.d[i] >= best.distance) break;
+        const dx = samples.x[i] - v.x;
+        const dz = samples.z[i] - v.z;
+        if (Math.abs(dx * fx + dz * fz) > v.length / 2 + 0.5) continue;
+        if (Math.abs(dx * fz - dz * fx) > v.width / 2 + cfg.carClearance) continue;
+        best = { vehicle: v, distance: samples.d[i] };
+        break;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Corredor: com um carro lento na frente, numa rua de mão dupla de uma faixa, ele vai para perto da faixa do
+   * meio e passa pela fila, como os motoboys. Volta para a faixa quando não tem mais carro para passar.
+   */
+  function updateSplit(dt) {
+    const edge = edges[bike.road.edge];
+    sampleRoute(look.lane, 0);
+    if (traffic && cfg.laneSplit) {
+      const blocked = firstInPath(look.lane, null, true);
+      const slow = blocked && blocked.distance < cfg.splitLook && blocked.vehicle.speed < edge.speedLimit * cfg.cruise * 0.8;
+      // Entra no corredor só numa rua de mão dupla de uma faixa; uma vez nele, fica enquanto a faixa estiver ocupada
+      // (perto do cruzamento a "via mais próxima" muda, e voltar para a faixa ali seria cair atrás de um carro parado).
+      const canEnter = !edge.oneWay && edge.lanes === 1;
+      if (slow && (shift > 0 || canEnter)) {
+        if (!splitTimer) splitTarget = Math.max(0, edge.halfWidth / 2 - cfg.splitLine);
+        splitTimer = cfg.splitHold;
+      } else splitTimer = Math.max(0, splitTimer - dt);
+    }
+    shiftGoal = splitTimer > 0 ? splitTarget : 0;
+    shift += clamp(shiftGoal - shift, -cfg.shiftRate * dt, cfg.shiftRate * dt);
+    pilot.splitting = shift > 0.3;
+    sampleRoute(look.split, shift);
+  }
+
+  function makeSamples() {
+    const size = 64;
+    return { x: new Float64Array(size), z: new Float64Array(size), d: new Float64Array(size), count: 0 };
+  }
+
+  /** Pontos da rota de `sampleStep` em `sampleStep` metros à frente da moto, deslocados `side` metros para a esquerda. */
+  function sampleRoute(samples, side) {
+    let i = segment;
+    samples.count = 0;
+    const total = lengths[lengths.length - 1];
+    for (let d = 0; d <= cfg.carLook && samples.count < samples.x.length; d += cfg.sampleStep) {
+      const along = Math.min(progress + d, total);
+      while (i < path.length - 2 && lengths[i + 1] < along) i++;
+      const span = lengths[i + 1] - lengths[i] || 1;
+      const t = clamp((along - lengths[i]) / span, 0, 1);
+      const dirX = (path[i + 1].x - path[i].x) / span;
+      const dirZ = (path[i + 1].z - path[i].z) / span;
+      samples.x[samples.count] = path[i].x + (path[i + 1].x - path[i].x) * t + dirZ * side;
+      samples.z[samples.count] = path[i].z + (path[i + 1].z - path[i].z) * t - dirX * side;
+      samples.d[samples.count] = d;
+      samples.count++;
+      if (along >= total) break;
+    }
+  }
+
+  /** Desloca `point` `side` metros para a esquerda de `dir`. */
+  function shiftLeft(point, dir, side) {
+    point.x += dir.z * side;
+    point.z -= dir.x * side;
+  }
+
 
   /**
    * Velocidade que ainda permite parar na linha de retenção do próximo cruzamento da rota, se for preciso parar:
@@ -226,13 +336,18 @@ export function createAutopilot({ city, graph, bike, config: cfg, traffic = null
   function aimAt(reach) {
     const total = lengths[lengths.length - 1];
     let i = segment;
+    const setDir = () => {
+      const span = lengths[i + 1] - lengths[i] || 1;
+      aimDir.x = (path[i + 1].x - path[i].x) / span;
+      aimDir.z = (path[i + 1].z - path[i].z) / span;
+    };
     for (let distance = progress; ; distance += cfg.aimStep) {
       const along = Math.min(distance, total);
       while (i < path.length - 2 && lengths[i + 1] < along) i++;
       const t = clamp((along - lengths[i]) / (lengths[i + 1] - lengths[i] || 1), 0, 1);
       aim.x = path[i].x + (path[i + 1].x - path[i].x) * t;
       aim.z = path[i].z + (path[i + 1].z - path[i].z) * t;
-      if (along >= total || Math.hypot(aim.x - bike.x, aim.z - bike.z) >= reach) return;
+      if (along >= total || Math.hypot(aim.x - bike.x, aim.z - bike.z) >= reach) return setDir();
     }
   }
 

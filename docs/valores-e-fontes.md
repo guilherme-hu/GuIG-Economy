@@ -97,17 +97,30 @@ Rodar: `node scripts/balance.js 3 cauteloso,apressado,kamikaze 4` (dias, perfis,
 
 Para ver o robô jogando no navegador: abra o jogo com `?bot=cauteloso` (ou `apressado`, `kamikaze`); `&vel=3` acelera o tempo. Ele aceita corridas, pilota, passa de dia sozinho e escreve no console (F12) cada acidente, multa, conserto e entrega.
 
-Resultado (até 3 dias por combinação, 4 sementes, duas estratégias de escolha de corridas):
+### Três cenários para estimar um jogador humano
 
-| Perfil | Entregas por dia | Líquido por dia | Como terminou |
+O robô dirige pior que uma pessoa no trânsito denso: mesmo depois de aprender a costurar no corredor, ele ainda trava em impasses e faz poucas entregas. Por isso medimos uma **faixa**, com o perfil **bom** (rápido, costura no corredor, mas respeita sinal e cruza com cuidado):
+
+| Cenário | O que representa | Entregas por dia | Líquido por dia | Pagou as contas |
+|---|---|---|---|---|
+| Sem trânsito nem sinais (seção 3) | o teto: a cidade vazia | 10–11 | R$ 60–71 | 3 de 3 dias |
+| **Com sinais e radares, sem carros** (`bom+sinais`) | quem costura bem perde tempo só nos sinais e cruzamentos: **a estimativa para uma pessoa jogando bem** | 6–9 | −R$ 35 a +R$ 54 (positivo em 7 de 9 dias) | 3 de 9 dias |
+| Trânsito completo (`bom`) | o piso: o robô travado no trânsito | 0–2 | negativo | nenhum |
+
+E no cenário com sinais e sem carros, comparando perfis (3 dias × 3 sementes):
+
+| Perfil | Entregas por dia | Líquido por dia | Pagou as contas |
 |---|---|---|---|
-| cauteloso | 1–6 | −R$ 5 a −R$ 51 | nunca pagou as contas; terminou desativado (atrasos), despejado ou em acidente com moto imprudente |
-| apressado | 0–5 | negativo | **acidente em todas as 8 rodadas**, entre 3 e 11 min de turno; quase sempre batendo a 40–67 km/h num veículo parado ou dobrando |
-| kamikaze | 0 | — | **acidente em todas as 8 rodadas**, entre 1 e 3,5 min; levou de 1 a 3 multas de radar antes |
+| cauteloso (respeita tudo, no limite da via) | 6–9 | −R$ 61 a +R$ 60 | 1 de 9 dias |
+| bom (rápido, respeita sinal) | 6–9 | −R$ 35 a +R$ 54 | 3 de 9 dias |
+| apressado (fura o vermelho onde não há radar) | 7–11 | +R$ 26 a +R$ 84 | **7 de 9 dias** |
+
+No trânsito completo, o apressado e o kamikaze sofrem acidente em quase todas as rodadas, nos primeiros minutos.
 
 O que isso mostra:
-- **O trânsito é o que mais pesa.** Sem trânsito, o mesmo robô cauteloso fazia 10–11 entregas por dia; com trânsito, faz de 1 a 6.
-- **Correr mata rápido.** Os perfis que furam sinal e andam acima do limite não terminam nem o primeiro dia; o motivo do acidente quase sempre é a velocidade da própria moto.
-- **Respeitar as regras não paga as contas.** O cauteloso sobrevive mais, mas fatura pouco demais: é o dilema do entregador.
+- **Jogando bem dá lucro, mas não dá para viver.** O líquido do dia fica positivo na maioria dos dias (é melhor que ficar em casa), mas só paga as contas de um salário mínimo em cerca de 1 dia a cada 3.
+- **Furar sinal compensa no bolso**: quem fura o vermelho onde não há radar paga as contas em quase todos os dias. É o incentivo perverso que o jogo quer mostrar.
+- **E furar sinal cobra na pele**: no trânsito de verdade, os mesmos perfis apressados batem nos primeiros minutos.
+- **Uma multa apaga o dia.** Mesmo os perfis que respeitam o sinal levam uma multa de radar de vez em quando (passando no fim do amarelo), e R$ 29,35 basta para o dia não fechar.
 
-**Limitação importante: esse resultado subestima um jogador humano.** O robô é um motorista ruim: não ultrapassa, não costura entre os carros nas ruas de mão dupla e às vezes fica parado em impasses com outros veículos (o detector `TRAVAS=1` mostra esses casos). Por isso esses números servem para comparar perfis e mostrar o risco, não para fechar a calibração da economia. A calibração final depende de pessoas jogando; a flag `?bot=` serve para observar o comportamento e caçar problemas enquanto isso.
+Para rodar: `node scripts/balance.js 3 cauteloso+sinais,bom+sinais,apressado+sinais 3`.
