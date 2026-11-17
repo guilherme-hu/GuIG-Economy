@@ -108,6 +108,35 @@ export const config = {
     stallSpeed: 0.3, // m/s: abaixo disso, acelerando, ele se considera encalhado
     stallTime: 0.6, // s encalhado até reagir
     backUpTime: 0.9, // s de ré para desencalhar
+    // Comportamento no trânsito (só vale quando o piloto recebe traffic/signals):
+    obeyLights: 'sempre', // 'sempre' | 'radar' (fura onde não há radar) | 'nunca'
+    carLook: 45, // m à frente em que ele procura veículos
+    carClearance: 0.6, // m de folga lateral (o raio da moto e um pouco): abaixo disso o veículo está no caminho
+    followGap: 3, // m que ele deixa atrás do veículo da frente, parado
+    followTime: 1, // s de distância para o veículo da frente, em movimento
+    commitDistance: 5, // m antes da linha em que, com o sinal aberto, ele se compromete a passar
+    crossSpeed: kmh(30), // velocidade máxima para atravessar um cruzamento
+    sampleStep: 1.5, // m entre os pontos da rota em que ele procura veículos
+    laneSplit: true, // costura no corredor quando um carro lento bloqueia a faixa
+    splitLook: 25, // m à frente em que um carro lento o faz ir para o corredor
+    splitLine: 0.5, // m da faixa do meio onde ele passa no corredor
+    splitHold: 2, // s que ele fica no corredor depois de passar o último carro
+    shiftRate: 2, // m/s de deslocamento lateral ao entrar e sair do corredor
+    splitSpeed: kmh(40), // velocidade máxima costurando no corredor
+    lineTolerance: 0.3, // m: mais longe que isso da linha que está seguindo, ele ainda está no meio da manobra
+    impatience: 6, // s parado atrás de um veículo parado até tentar contornar
+    nudgeTime: 3, // s contornando devagar
+    nudgeSpeed: kmh(8),
+    yieldToTraffic: true, // dá a preferência a quem já está atravessando o cruzamento
+    yieldLook: 25, // m antes da linha em que ele começa a olhar o cruzamento
+    // Perfis de direção (sobrepõem os valores acima): usados pela simulação e pela flag `?bot=<perfil>`.
+    profiles: {
+      cauteloso: { laneSplit: false }, // respeita sinal e preferência, anda no limite da via, não costura
+      // Jogando bem: rápido, costura no corredor, mas respeita sinal e cruza com cuidado. É a referência de "jogador bom".
+      bom: { cruise: 0.9 * 1.15, crossSpeed: kmh(40), followTime: 0.6, cornerGrip: 6, brake: 7.5 },
+      apressado: { cruise: 0.9 * 1.4, cornerGrip: 8, brake: 8.4, obeyLights: 'radar', followGap: 1.5, followTime: 0.4, crossSpeed: kmh(55), splitSpeed: kmh(55) }, // fura onde não há radar
+      kamikaze: { cruise: 0.9 * 1.4, cornerGrip: 8, brake: 8.4, obeyLights: 'nunca', yieldToTraffic: false, followGap: 1.5, followTime: 0.3, crossSpeed: Infinity, splitSpeed: kmh(70) },
+    },
   },
 
   signals: {
@@ -130,7 +159,7 @@ export const config = {
     lookAhead: 40,
     crawlSpeed: 3, // m/s: abaixo disso conta como parado na linha
     spawnSpan: 0.6, // nasce nos primeiros 60% da via
-    junctionSpeed: kmh(45), // velocidade com que atravessam cruzamentos
+    junctionSpeed: kmh(30), // velocidade com que atravessam cruzamentos (e dobram esquinas)
     rerouteAfter: 3, // s esperando a saída liberar antes de escolher outra rua
     junctionHold: 6, // s em que uma faixa pode mandar carros seguidos num cruzamento
     accel: 5,
@@ -138,60 +167,79 @@ export const config = {
     hardBrake: 12,
     smoothing: 8, // quão rápido a posição desenhada segue a faixa (suaviza as curvas)
     stuckTime: 10,
-    stuckMinDistance: 250, // só some longe, fora da vista (além de onde os carros nascem)
+    patience: 8, // s parado até o motorista deixar de esperar a moto do jogador
+    stuckMinDistance: 250,
+    playerMargin: 2, // m além do raio do cruzamento em que a moto do jogador conta como "lá dentro"
+    playerNear: 10, // m: tão perto assim à frente, a moto do jogador é vista mesmo fora do corredor
+    playerSide: 1.5, // m além da lateral do veículo em que a moto conta (não pega a outra mão)
+    playerYieldTime: 2.5, // s: quem vai cruzar espera a moto que chega nesse tempo com o sinal aberto // só some longe, fora da vista (além de onde os carros nascem)
     // Outros entregadores: andam acima do limite, costuram no corredor e furam sinal.
     motoShare: 0.22, // fração do trânsito que é moto
     moto: { type: 'moto', model: 'moto', length: 2, width: 0.8, reckless: true },
     motoPace: [1.15, 1.55], // múltiplo do limite da via
     motoRunRed: 0.6, // fração das motos que fura o vermelho
-    motoLine: 0.3, // m à direita da faixa pintada: é por ali que elas costuram
+    motoLine: 0.7, // m à direita da faixa pintada: é por ali que elas costuram
     corridorFit: 0.9, // fração da largura somada que conta como "no caminho" (deixa a moto passar raspando)
     fleet: [
-      { type: 'carro', model: 'cars/sedan', length: 4.0, width: 2.2 },
-      { type: 'carro', model: 'cars/sedan-sports', length: 4.0, width: 2.2 },
-      { type: 'carro', model: 'cars/hatchback-sports', length: 3.9, width: 2.2 },
-      { type: 'carro', model: 'cars/suv', length: 4.2, width: 2.3 },
-      { type: 'carro', model: 'cars/suv-luxury', length: 4.3, width: 2.3 },
-      { type: 'carro', model: 'cars/taxi', length: 4.2, width: 2.3 },
-      { type: 'carro', model: 'cars/van', length: 4.5, width: 2.4 },
-      { type: 'caminhao', model: 'cars/truck', length: 5.0, width: 2.4 },
-      { type: 'caminhao', model: 'cars/delivery', length: 5.8, width: 2.5 },
+      { type: 'carro', model: 'cars/sedan', length: 4.0, width: 1.9 },
+      { type: 'carro', model: 'cars/sedan-sports', length: 4.0, width: 1.9 },
+      { type: 'carro', model: 'cars/hatchback-sports', length: 3.9, width: 1.9 },
+      { type: 'carro', model: 'cars/suv', length: 4.2, width: 2 },
+      { type: 'carro', model: 'cars/suv-luxury', length: 4.3, width: 2 },
+      { type: 'carro', model: 'cars/taxi', length: 4.2, width: 2 },
+      { type: 'carro', model: 'cars/van', length: 4.5, width: 2 },
+      { type: 'caminhao', model: 'cars/truck', length: 5.0, width: 2.2 },
+      { type: 'caminhao', model: 'cars/delivery', length: 5.8, width: 2.2 },
     ],
   },
 
   rules: {
     crashSpeed: kmh(40), // impacto acima disso = acidente, fim de jogo
+    crashSpeedWhenHit: kmh(60), // quando é o veículo que acerta a moto (ela não estava indo para cima dele)
     damageSpeed: kmh(20), // entre isso e o acidente: a moto quebra e o conserto sai do seu bolso
-    repairCost: 35,
+    repairCost: 30, // manete, retrovisor, pisca: o dano é do entregador mesmo com moto alugada (escala do jogo)
     crashScreenDelay: 2.4, // s de efeito do acidente antes da tela de fim
     repairCooldown: 2, // s: raspar na parede não cobra um conserto por passo
     cameraShare: 0.3, // fração dos cruzamentos com semáforo que têm radar
     cameraWarnDistance: 180, // m: o GPS avisa do radar a partir daqui
     cameraWarnCone: 0.8, // cosseno do ângulo à frente em que o radar conta
-    fineRedLight: 60,
-    fineWrongWay: 30,
+    // Multas a 1/10 do valor real do CTB (2025), mantendo a proporção entre elas: gravíssima = R$ 293,47; calçada, ×3.
+    // No valor real, uma multa apagaria dias de trabalho e o jogo acabaria na primeira; a 1/10, ela come o lucro do dia.
+    fineRedLight: 29.35, // art. 208 (real: R$ 293,47)
+    fineWrongWay: 29.35, // art. 186, II (real: R$ 293,47)
     fineMinSpeed: 2, // m/s: abaixo disso não conta como furar sinal nem contramão
     wrongWayGrace: 1.5,
     bumpKeep: 0.4, // fração da velocidade que sobra num toque leve em veículo
-    fineSidewalk: 45,
+    fineSidewalk: 88.04, // art. 193 (real: R$ 880,41)
     sidewalkGrace: 3, // segundos na calçada antes da multa (contador na tela)
     sidewalkCooldown: 8, // intervalo mínimo entre multas de calçada
   },
 
+  // Valores reais (2025): iFood paga no mínimo R$ 7,50 por rota de moto até 4 km e R$ 1,50 por km adicional.
+  // A cidade do jogo é uma miniatura: 1 km do jogo vale `kmScale` km de verdade (uma entrega típica real tem ~3 km).
   jobs: {
     offerCount: 3,
     offerLifetime: 12,
-    basePay: 4.5,
-    payPerKm: 1.6,
-    surgeMin: 0.8,
-    surgeMax: 1.6,
-    surgeBadge: 1.3,
+    minPay: 7.5,
+    payPerKm: 2.5, // o iFood paga R$ 1,50; usamos os R$ 2,50 reivindicados na greve de 2025, para a longa valer a pena
+    freeKm: 4, // km reais cobertos pelo mínimo
+    kmScale: 3,
+    bands: [
+      { name: 'curta', share: 0.45, min: 300, max: 900 },
+      { name: 'media', share: 0.35, min: 900, max: 1800 },
+      { name: 'longa', share: 0.2, min: 1800, max: 3600 },
+    ],
+    restaurantChoices: 3, // o app oferece restaurantes entre os mais próximos
+    customerTries: 6,
+    surgeChance: 0.2,
+    surgeMax: 1.4,
+    surgeBadge: 1.15,
     pickupStopTime: 1.5,
     stopSpeed: kmh(5),
     stopRadius: 9, // cobre o marcador do outro lado de uma avenida larga
-    deadlineBuffer: 20,
-    refSpeedShort: kmh(35), // corridas curtas: prazo folgado
-    refSpeedLong: kmh(55), // corridas longas: prazo apertado
+    deadlineBuffer: 45,
+    refSpeedShort: kmh(20), // corridas curtas: prazo folgado (velocidade média no trânsito, com sinais)
+    refSpeedLong: kmh(28), // corridas longas: prazo apertado
     refDistanceShort: 600,
     refDistanceLong: 2600,
     maxTipShare: 0.3,
@@ -204,16 +252,17 @@ export const config = {
     maxRating: 5,
     minRating: 4.2,
     ratingOnTime: 0.03,
-    ratingLateMin: 0.1,
-    ratingLateMax: 0.5,
-    ratingCancelled: 0.5,
+    ratingLateMin: 0.05, // a nota é uma média: uma entrega ruim pesa pouco, várias derrubam
+    ratingLateMax: 0.2,
+    ratingCancelled: 0.25,
     acceptanceFloor: 0.5, // abaixo disso o app esconde as ofertas boas
     acceptanceWindow: 10,
-    fuelPerKm: 0.35,
-    bikeRentPerDay: 40,
-    // R$/hora do extrato: um turno (shift.duration segundos de jogo) representa uma jornada de
-    // shiftHours horas reais, para o número ser comparável com a vida real.
-    shiftHours: 10,
+    fuelPerKm: 0.6, // por km do jogo: ~R$ 0,20 por km real (gasolina + manutenção) × jobs.kmScale
+    bikeRentPerDay: 25, // aluguel de moto para entregador: a partir de R$ 175 por semana (Mottu) ÷ 7
+    // R$/hora do extrato: um turno (shift.duration segundos de jogo) representa uma jornada de shiftHours horas
+    // reais. Entregadores trabalham em média menos de 4 h por dia (Cebrap): 15 min de jogo = 3 h 45 min,
+    // e 1 min de jogo ≈ 15 min reais. Assim o bruto por hora de quem joga bem (R$ 25–33/h) bate com o real (R$ 28–31/h).
+    shiftHours: 3.75,
     get shiftDuration() {
       return config.shift.duration;
     },
@@ -224,9 +273,9 @@ export const config = {
   },
 
   shift: {
-    duration: 360,
-    billsDay1: 90,
-    billsGrowth: 0.15,
+    duration: 900,
+    billsDay1: 46.8, // salário mínimo líquido de 2025 (R$ 1.518 − 7,5% de INSS = R$ 1.404,15) ÷ 30 dias
+    billsGrowth: 0.03, // as contas apertam a cada dia
     missedDaysToLose: 2,
   },
 };

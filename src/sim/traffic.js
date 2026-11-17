@@ -6,7 +6,9 @@
 export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   const { edges, nodes } = city;
   const point = { x: 0, z: 0 };
-  const bikeBody = { length: 2, width: 0.8 };
+  // A moto do jogador conta com folga: a caixa de colisão dela (raio + lataria) é maior que o corredor
+  // estreito em que os carros procuram outros veículos, e um carro que não a vê passa por cima.
+  const bikeBody = { length: 2.4, width: 2.6 };
   const vehicles = Array.from({ length: cfg.poolSize }, (_, id) => ({
     id, active: false, type: 'carro', model: '', x: 0, z: 0, heading: 0, speed: 0, length: 4, width: 2,
     edge: 0, forward: true, s: 0, lane: 0, pace: 1, runsRed: false, reckless: false, stuck: 0, inNode: -1, next: -1,
@@ -58,8 +60,11 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
 
     // Quem já entrou no cruzamento segue; quem não entrou decide aqui se espera na linha de retenção.
     const committed = v.inNode === endNode;
-    const wait = !committed && mustWait(v, endNode, stopAt);
-    let free = gapAhead(v, focus) - cfg.followGap;
+    // Motorista impaciente: parado há tempo demais, deixa de esperar a moto do jogador e segue.
+    // Desfaz qualquer impasse "um esperando o outro" entre ele e a moto.
+    const player = v.stuck > cfg.patience ? null : focus;
+    const wait = !committed && mustWait(v, endNode, stopAt, player);
+    let free = gapAhead(v, player) - cfg.followGap;
     if (wait) free = Math.min(free, stopAt - v.s);
 
     // Chega no cruzamento em velocidade de curva: sem isso entraria a 100 km/h numa rua curta com sinal fechado.
@@ -80,9 +85,10 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   }
 
   /** Vermelho, amarelo que ainda dá para respeitar, cruzamento ocupado por outra faixa ou sem espaço na saída. */
-  function mustWait(v, nodeId, stopAt) {
+  function mustWait(v, nodeId, stopAt, focus) {
     const light = signals.stateFor(nodeId, v.edge);
     if (light === 'vermelho') return !(v.reckless && v.runsRed);
+    if (focus && playerHasWay(nodes[nodeId], focus)) return true;
     // No amarelo para quem consegue parar; quem está quase parado na linha não arranca. Os 'furões' passam...
     const stopsOnYellow = !v.runsRed && (v.speed < cfg.crawlSpeed || (v.speed * v.speed) / (2 * cfg.hardBrake) < stopAt - v.s);
     if (light === 'amarelo' && stopsOnYellow) return true;
@@ -93,6 +99,32 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
     // Saída lotada há tempo: desiste e sorteia outra rua. Sem isso, filas que dão a volta no quarteirão travam em ciclo.
     if (v.stuck > cfg.rerouteAfter) v.next = -1;
     return true;
+  }
+
+  /**
+   * A moto do jogador tem a preferência quando está no cruzamento ou chegando nele com o sinal aberto.
+   * Se ela vem furando o vermelho, ninguém espera por ela: é aí que mora o perigo.
+   */
+  function playerHasWay(node, bike) {
+    const dx = node.x - bike.x;
+    const dz = node.z - bike.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance < node.radius + cfg.playerMargin) return true;
+    if (!bike.road || distance - node.radius > Math.abs(bike.speed) * cfg.playerYieldTime) return false;
+    const coming = (dx * Math.cos(bike.heading) + dz * Math.sin(bike.heading)) / distance > 0.7;
+    return coming && signals.stateFor(node.id, approachOf(node, bike)) !== 'vermelho';
+  }
+
+  /** Via pela qual a moto chega ao cruzamento: a mais alinhada com o rumo dela (a via mais próxima pode ser a transversal). */
+  function approachOf(node, bike) {
+    let best = node.edges[0];
+    let bestDot = -Infinity;
+    for (const id of node.edges) {
+      const into = edges[id].b === node.id ? 1 : -1;
+      const dot = (edges[id].dir.x * Math.cos(bike.heading) + edges[id].dir.z * Math.sin(bike.heading)) * into;
+      if (dot > bestDot) [best, bestDot] = [id, dot];
+    }
+    return best;
   }
 
   /** Para onde o veículo vai ao sair deste cruzamento (sorteado uma vez; beco sem saída: volta). */
@@ -138,7 +170,17 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
       // Fila só entre iguais: carro atrás de carro, moto atrás de moto. A moto ao lado, no corredor, não é fila.
       if (v.reckless === w.reckless && w.edge === v.edge && w.forward === v.forward && w.lane === v.lane && w.s > v.s) gap = Math.min(gap, w.s - v.s - (v.length + w.length) / 2);
     }
-    check(focus, bikeBody);
+    // A moto do jogador conta só se estiver à frente do para-choque: se está do lado, é ela quem espera.
+    // Senão os dois param um pelo outro. Logo à frente, ela conta numa faixa mais larga que o corredor:
+    // um carro que dobra a esquina varre mais que a reta.
+    if (!focus) return gap;
+    const dx = focus.x - v.x;
+    const dz = focus.z - v.z;
+    const along = dx * fx + dz * fz;
+    if (along > v.length / 2) {
+      check(focus, bikeBody);
+      if (along < cfg.playerNear && Math.abs(dx * fz - dz * fx) < v.width / 2 + cfg.playerSide) gap = Math.min(gap, along - v.length / 2 - 1);
+    }
     return gap;
   }
 

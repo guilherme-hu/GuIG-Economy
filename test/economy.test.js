@@ -32,7 +32,7 @@ test('economy: o extrato fecha e bate com a variação do dinheiro', () => {
   assert.equal(s.gross, 225.34);
   assert.equal(s.tips, 6);
   assert.equal(s.fines, 90);
-  assert.equal(s.fuel, 2.59); // 7,4 km × R$ 0,35
+  assert.equal(s.fuel, Math.round(7.4 * cfg.fuelPerKm * 100) / 100); // 7,4 km rodados
   assert.equal(s.deliveries, 31);
   assert.equal(s.late, 1);
   assert.ok(Math.abs(s.distanceKm - 7.4) < 1e-6);

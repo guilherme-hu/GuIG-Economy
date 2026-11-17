@@ -17,10 +17,11 @@ import { createBikeView } from './render/bikeView.js';
 import { createBike } from './sim/bike.js';
 import { createAutopilot } from './sim/autopilot.js';
 import { createEconomy } from './sim/economy.js';
-import { createJobs } from './sim/jobs.js';
+import { createJobs, bestPerMeter } from './sim/jobs.js';
 import { createSignals } from './sim/signals.js';
 import { createTraffic } from './sim/traffic.js';
 import { createRules } from './sim/rules.js';
+import { createShift } from './sim/shift.js';
 import { createTrafficView, createSignalsView } from './render/trafficView.js';
 import { nextManeuver } from './sim/navigation.js';
 import { createMarkersView } from './render/markersView.js';
@@ -34,6 +35,8 @@ import { createScreens } from './ui/screens.js';
 const canvas = document.getElementById('jogo');
 const params = new URLSearchParams(location.search);
 const debugMap = params.get('debug') === 'mapa';
+// Modo robô, só para testes: `?bot=cauteloso|apressado|kamikaze` joga sozinho, dia após dia; `&vel=3` acelera o tempo.
+const botProfile = config.autopilot.profiles[params.get('bot')] ? params.get('bot') : null;
 
 const events = createEvents();
 const rng = createRng(config.seed);
@@ -50,8 +53,10 @@ const jobs = createJobs({ city, graph, rng: rng.fork('ofertas'), events, economy
 const signals = createSignals(city, config.signals);
 const traffic = createTraffic({ city, graph, signals, rng: rng.fork('trânsito'), config: config.traffic });
 const rules = createRules({ city, signals, traffic, bike, economy, events, rng: rng.fork('radares'), config: config.rules });
-const pilot = createAutopilot({ city, graph, bike, config: config.autopilot });
-const sim = { time: 0, phase: 'menu', city, graph, bike, pilot, economy, jobs, signals, traffic, rules, nav: null, autopilot: false };
+const pilotConfig = { ...config.autopilot, ...(botProfile ? config.autopilot.profiles[botProfile] : {}) };
+const pilot = createAutopilot({ city, graph, bike, config: pilotConfig, traffic, signals, cameras: rules.cameras });
+const shift = createShift({ economy, jobs, events, config: config.shift });
+const sim = { time: 0, phase: 'menu', city, graph, bike, pilot, economy, jobs, signals, traffic, rules, shift, nav: null, autopilot: !!botProfile };
 
 /** Com o piloto ligado, ele vai sozinho ao destino da corrida ativa (restaurante, depois cliente). */
 let pilotTarget = null;
@@ -103,30 +108,57 @@ events.on('crash', ({ relSpeed }) => {
   warning.show(null);
   phone.close();
   hud.flash('batida');
-  setTimeout(showAccident, config.rules.crashScreenDelay * 1000);
+  setTimeout(() => shift.gameOver('acidente'), config.rules.crashScreenDelay * 1000);
 });
-function showAccident() {
-  sim.phase = 'fim';
+
+/** Sai da rua: some o HUD, o celular e os avisos, e entra uma tela cheia. */
+function leaveStreet(phase, screen, data) {
+  sim.phase = phase;
   hud.setVisible(false);
-  const { perHour } = economy.statement();
-  const stats = { days: economy.career.days + 1, deliveries: economy.career.deliveries + economy.day.deliveries, earned: economy.money, perHour };
-  screens.show('fim', { reason: 'acidente', stats });
+  warning.show(null);
+  phone.close();
+  screens.show(screen, data);
 }
-const screens = createScreens(ui, { onStart: firstShift, onResume: resume, onNextDay: startShift, onRestart: () => location.reload() });
+events.on('shift:end', (data) => leaveStreet('extrato', 'extrato', data));
+events.on('game:over', (data) => leaveStreet('fim', 'fim', data));
+events.on('shift:start', () => {
+  sim.phase = 'turno';
+  bike.reset(spawn); // todo dia começa na porta de casa
+  chase.snap();
+  screens.hide();
+  hud.setVisible(true);
+  phone.open();
+});
+
+const screens = createScreens(ui, { onStart: firstShift, onResume: resume, onNextDay: () => shift.nextDay(), onRestart: () => location.reload() });
 hud.setVisible(false);
-if (!debugMap) screens.show('menu');
+if (botProfile) startBot();
+else if (!debugMap) screens.show('menu');
+
+/** Modo robô: começa direto, passa de dia sozinho e recomeça quando o jogo acaba. */
+function startBot() {
+  const badge = document.createElement('div');
+  badge.className = 'ui bot-badge';
+  badge.textContent = `🤖 Robô · ${botProfile}`;
+  ui.append(badge);
+  // Diário no console (F12): o que aconteceu e onde, para caçar problemas enquanto o robô joga.
+  const where = () => ({ x: Math.round(bike.x), z: Math.round(bike.z), kmh: Math.round(bike.speed * 3.6), via: bike.road?.edge, limite: pilot.limitedBy });
+  events.on('crash', ({ vehicleId, relSpeed }) => {
+    const v = traffic.vehicles[vehicleId];
+    console.warn('[robô] acidente', { ...where(), impacto: Math.round(relSpeed * 3.6), veiculo: v && { tipo: v.reckless ? 'moto imprudente' : v.type, kmh: Math.round(v.speed * 3.6), angulo: Math.round((Math.acos(Math.cos(v.heading - bike.heading)) * 180) / Math.PI) } });
+  });
+  events.on('fine', ({ kind, amount }) => console.info('[robô] multa', kind, amount, where()));
+  events.on('damage', ({ kind }) => console.info('[robô] conserto', kind, where()));
+  events.on('job:delivered', ({ lateBy }) => console.info('[robô] entrega', lateBy > 0 ? `atrasada ${Math.round(lateBy)} s` : 'no prazo'));
+  events.on('shift:end', () => setTimeout(() => shift.nextDay(), 4000));
+  events.on('game:over', () => setTimeout(() => location.reload(), 6000));
+  shift.start();
+}
 
 /** Primeiro turno: passa pelas instruções (a não ser que o jogador já as tenha dispensado). */
 function firstShift() {
   screens.hide();
-  tutorial.show(startShift);
-}
-function startShift() {
-  sim.phase = 'turno';
-  economy.startDay();
-  screens.hide();
-  hud.setVisible(true);
-  phone.open();
+  tutorial.show(() => shift.start());
 }
 function resume() {
   screens.hide();
@@ -175,10 +207,15 @@ const loop = createLoop({
     bike.step(sim.autopilot ? pilotInput(dt) : pilot.active ? pilot.step(dt) : input.state, dt);
     economy.chargeFuel(bike.distance - before);
     economy.tick(dt);
+    if (botProfile && !jobs.active && shift.timeLeft > 0) {
+      const ready = jobs.offers.length >= config.jobs.offerCount || jobs.offers.some((o) => o.expiresIn < 2);
+      if (ready) jobs.accept(bestPerMeter(jobs.offers).id, bike);
+    }
     jobs.step(dt, bike);
     signals.step(dt);
     traffic.step(dt, bike);
     rules.step(dt);
+    shift.step(dt);
   },
   render(alpha, frameDt) {
     const riding = (sim.phase === 'turno' || sim.phase === 'acidente') && !debugMap;
@@ -197,6 +234,7 @@ const loop = createLoop({
   },
 });
 loop.start();
+if (botProfile) loop.timeScale = Number(params.get('vel')) || 1;
 
 /** Porta de verificação: permite exercitar o jogo sem um humano pilotando. */
 window.__game = {
@@ -207,7 +245,7 @@ window.__game = {
   input,
   loop,
   view: { stage, cityView, aerial, chase, bikeView },
-  start: startShift,
+  start: () => shift.start(),
   phone,
   /** Liga ou desliga o piloto automático: ligado, ele faz sozinho a corrida ativa. */
   autopilot(on) {
@@ -225,6 +263,7 @@ window.__game = {
   state: () => ({
     time: sim.time,
     phase: sim.phase,
+    shift: { day: shift.day, timeLeft: shift.timeLeft, bills: shift.bills, missedDays: shift.missedDays },
     bike: { x: bike.x, z: bike.z, heading: bike.heading, kmh: bike.speed * 3.6, road: bike.road?.edge },
     autopilot: { active: pilot.active, arrived: pilot.arrived },
     money: economy.money,
