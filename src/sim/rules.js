@@ -40,7 +40,7 @@ export function createRules({ city, signals, traffic, bike, economy, events, rng
         const distance = Math.hypot(dx, dz);
         if (distance > cfg.cameraWarnDistance || distance < nodes[id].radius) continue;
         if ((dx * fx + dz * fz) / distance < cfg.cameraWarnCone) continue;
-        if (!best || distance < best.distance) best = { distance };
+        if (!best || distance < best.distance) best = { id, distance };
       }
       return best;
     },

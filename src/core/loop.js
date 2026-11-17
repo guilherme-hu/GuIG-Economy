@@ -21,9 +21,10 @@ export function createLoop({ step, render }) {
     stop() {
       running = false;
     },
-    /** Avança n passos na hora, sem esperar o relógio (usado em verificação). */
-    advance(steps) {
+    /** Avança n passos na hora e desenha um quadro, sem esperar o relógio (usado em verificação). */
+    advance(steps = 0) {
       for (let i = 0; i < steps; i++) step(STEP);
+      render(0, STEP);
     },
   };
 

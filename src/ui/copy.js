@@ -29,6 +29,7 @@ export const copy = {
       { keys: ['1', '2', '3'], label: 'Aceitar oferta' },
       { keys: ['Q'], label: 'Trocar de aba no celular' },
       { keys: ['H'], label: 'Buzina' },
+      { keys: ['M'], label: 'Som liga/desliga' },
       { keys: ['Esc'], label: 'Pausar' },
     ],
     or: 'ou',
@@ -192,6 +193,11 @@ export const copy = {
       kind: 'info',
       title: 'Oferta expirada',
       text: 'Isso reduz sua taxa de aceitação. Fique de olho! 👀',
+    }),
+    sound: (muted) => ({
+      kind: 'info',
+      title: muted ? 'Som desligado' : 'Som ligado',
+      text: 'Aperte M para trocar.',
     }),
     lowAcceptance: () => ({
       kind: 'info',

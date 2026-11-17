@@ -132,8 +132,10 @@ Cada marco é uma issue no GitHub e termina com o jogo rodando, verificado confo
   *Aceite:* screenshot com trânsito parado num vermelho; teleporte para dentro de um carro em movimento dá game over; atravessar vermelho desconta dinheiro; fps ≥ 50 com o pool cheio.
 - [x] **M5 — Dia completo.** (#6) Turno, nota, aceitação, custos, extrato, progressão de dias, os 3 fins de jogo, menu, pausa, tutorial.
   *Aceite:* com `setTimeScale` alto + autopilot, um turno inteiro roda até o extrato e o extrato fecha; cada fim de jogo é alcançável e reiniciável.
-- [ ] **M6 — Sensação.** (#7) Som, entardecer→noite, faróis, FOV/tremor, flash de radar, partículas de freada, polimento visual do celular e das telas.
+- [x] **M6 — Sensação.** (#7) Som, entardecer→noite, faróis, FOV/tremor, flash de radar, partículas de freada, polimento visual do celular e das telas.
   *Aceite:* screenshots de dia e de noite bonitos; nenhum texto estourando no celular em 1366×768.
+  *Verificado* no navegador embutido (painel escondido, quadros desenhados com `loop.advance`): céu e luz do fim de tarde, pôr do sol, crepúsculo e noite; janelas, postes, faróis e lanternas acesos à noite; sombras perto da moto; rota em setas no asfalto; celular, extrato e fim de jogo em 1366×768; o robô rodou turnos com todos os sons e efeitos sem erro no console. Prédios em blocos de 120 m: 3,5 → 1,76 milhão de triângulos por quadro na mesma cena.
+  *Não verificado:* fps numa placa de vídeo de verdade (a placa Intel do painel escondido não dá número confiável; se o quadro passar de ~30 ms, o jogo desliga as sombras sozinho) e o som de ouvido.
 - [ ] **M7 — Balanceamento e entrega.** (#8) Jogar 3 turnos via autopilot com perfis "cauteloso" (para em todo sinal) e "apressado" (fura tudo) e ajustar `config.js` até: o cauteloso mal bate a meta, o apressado ganha mais mas toma multas e bate com frequência. `npm run build` funcionando com caminhos relativos (`base: './'`). README com como rodar, controles e um parágrafo ligando as mecânicas aos conceitos da disciplina (tabela da seção 1).
   *Aceite:* `dist/` abre e joga a partir de um servidor estático; README pronto.
 

@@ -8,7 +8,7 @@ const SCALE = { casa: 11, predio: 13, 'arranha-ceu': 14, galpao: 13, tree: 11 };
 const FIT = { min: 0.75, max: 1.2 }; // quanto o modelo pode encolher ou crescer para caber no lote
 const PAD = { casa: 0x7f9458, predio: 0x9b968d, 'arranha-ceu': 0x9b968d, galpao: 0x7d7a73, praca: 0x5c9447 };
 const PAD_Y = 0.02;
-const CHUNK = 320; // lado, em metros, dos blocos em que as instâncias são agrupadas para o descarte fora da tela
+const CHUNK = 120; // lado, em metros, dos blocos em que as instâncias são agrupadas para o descarte fora da tela
 
 const list = (folder, prefix, letters) => [...letters].map((letter) => `${folder}/${prefix}${letter}`);
 const MODELS = {
@@ -35,6 +35,24 @@ export function createLotPads(city) {
     pads.color(PAD[lot.kind]).quad(inLot(lot, u, v), inLot(lot, u, -v), inLot(lot, -u, -v), inLot(lot, -u, v), PAD_Y);
   }
   return new THREE.Mesh(pads.build(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
+}
+
+/**
+ * Janelas acesas à noite. Nos atlas da Kenney o vidro usa a faixa azul-clara (x 320–384, y 128–256 de 512);
+ * esta textura só tem essa faixa clara, então usada como `emissiveMap` só as janelas brilham.
+ */
+export function windowGlowTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 512;
+  const context = canvas.getContext('2d');
+  context.fillStyle = '#000';
+  context.fillRect(0, 0, 512, 512);
+  context.fillStyle = '#ffcf86';
+  context.fillRect(320, 128, 64, 128);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.flipY = false; // como as texturas do glTF
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
 }
 
 /** Carrega os modelos e devolve um grupo com um InstancedMesh por peça de modelo. */

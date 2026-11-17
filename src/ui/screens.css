@@ -434,6 +434,10 @@
   line-height: 1;
 }
 
+.summary__hour-value b {
+  white-space: nowrap; /* o sinal de menos não pode descer sozinho para outra linha */
+}
+
 .summary__hour-value i {
   color: var(--ink-300);
   font-size: 0.3em;

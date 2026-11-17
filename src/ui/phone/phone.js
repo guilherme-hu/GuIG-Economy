@@ -12,6 +12,7 @@ import { drawMinimap } from './minimap.js';
 const TABS = ['ofertas', 'corrida', 'carteira'];
 const NOTIFY_MS = 4500;
 const NOTIFY_MAX = 3;
+const SHIFT_START_MIN = 17 * 60; // o turno começa às 17h
 const NOTIFY_ICON = { multa: icons.fine, gorjeta: icons.tip, nota: icons.star, pagamento: icons.cash, info: icons.info };
 
 const t = copy.phone;
@@ -32,7 +33,7 @@ const template = `
   <div class="phone__device" data-ref="device">
     <div class="phone__screen">
       <div class="phone__status">
-        <span class="phone__status-shift num">${icons.clock}<span data-ref="shift">0:00</span></span>
+        <span class="phone__status-shift num"><span data-ref="shift">17:00</span></span>
         <span class="phone__island"></span>
         <span class="phone__status-icons">${icons.signal}${icons.battery}</span>
       </div>
@@ -363,7 +364,9 @@ export function createPhone(root, { onAccept = () => {}, onDecline = () => {} } 
     setHidden(r.dot_corrida, !active || tab === 'corrida');
 
     if (!open) return;
-    setKeyed(r.shift, Math.ceil(sim.shift?.timeLeft ?? 0), fmt.clock);
+    // o relógio do celular mostra a hora do dia: o turno vai das 17h até quase 21h
+    const worked = 1 - (sim.shift?.timeLeft ?? 0) / config.shift.duration;
+    setKeyed(r.shift, Math.floor(SHIFT_START_MIN + worked * config.economy.shiftHours * 60), fmt.timeOfDay);
     setKeyed(r.rating, Math.round((sim.economy?.rating ?? 0) * 100), (v) => fmt.rating(v / 100));
     if (tab === 'ofertas') updateOffers(offers, !!active);
     else if (tab === 'corrida') updateRide(sim, active);
