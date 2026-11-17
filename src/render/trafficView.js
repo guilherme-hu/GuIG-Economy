@@ -1,13 +1,14 @@
 /** Veículos (modelos instanciados) e semáforos (poste + lâmpada colorida por aproximação). */
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { buildBike } from './bikeView.js';
 
 const LOOK = {
   carYaw: Math.PI / 2, // os carros da Kenney têm a frente em +Z
-  pole: { height: 5.2, radius: 0.09, color: 0x2a2d38, offset: 0.9 },
-  lamp: { width: 0.42, height: 1.15 },
-  camera: { size: 0.7, lift: 1.1, color: 0xff8a1f }, // caixa do radar, acima da lâmpada
+  signal: { height: 6, curb: 0.9, color: 0x1e2029, housing: { w: 0.7, h: 1.95, d: 0.42 }, lens: 0.24, lensGap: 0.6 },
+  radar: 0xff8a1f, // caixa laranja do radar, no alto do poste
   colors: { verde: 0x3dff7a, amarelo: 0xffc93d, vermelho: 0xff3b30 },
+  off: { verde: 0x10261a, amarelo: 0x2b2310, vermelho: 0x2e1210 }, // lente apagada: escura, para só a acesa chamar atenção
   bag: 0xc8ff2e, // o baú, que ganha a cor do app de cada entregador
   apps: [0xff3b30, 0xff8a00, 0x8b3dff, 0x00a8ff, 0xc8ff2e],
   jacket: 0x2b2f3d,
@@ -114,21 +115,32 @@ function createMotoBatch(scene, capacity) {
   };
 }
 
+/**
+ * Semáforo de braço, como os brasileiros: poste na calçada da direita de quem chega, braço por cima da pista
+ * e a caixa pendurada sobre as faixas dessa aproximação. As lentes ficam só na frente da caixa: de trás e de
+ * lado você vê só a caixa escura, então cada semáforo só "fala" com a pista dele.
+ */
 export function createSignalsView({ scene, city, signals, cameras }) {
-  const heads = signals.heads;
-  const poles = new THREE.InstancedMesh(
-    new THREE.CylinderGeometry(LOOK.pole.radius, LOOK.pole.radius, LOOK.pole.height, 6).translate(0, LOOK.pole.height / 2, 0),
-    new THREE.MeshStandardMaterial({ color: LOOK.pole.color }),
-    heads.length,
-  );
-  const lamps = new THREE.InstancedMesh(
-    new THREE.BoxGeometry(LOOK.lamp.width, LOOK.lamp.height, LOOK.lamp.width).translate(0, LOOK.pole.height, 0),
-    new THREE.MeshBasicMaterial(),
-    heads.length,
-  );
-  const matrix = new THREE.Matrix4();
-  const color = new THREE.Color();
-  const shown = new Array(heads.length).fill('');
+  const { heads } = signals;
+  const S = LOOK.signal;
+  const count = heads.length;
+  const dark = new THREE.MeshStandardMaterial({ color: S.color, roughness: 0.6 });
+  const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.13, S.height, 8).translate(0, S.height / 2, 0), dark, count);
+  const arms = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.14, 0.14), dark, count);
+  const housings = new THREE.InstancedMesh(new RoundedBoxGeometry(S.housing.w, S.housing.h, S.housing.d, 2, 0.06), dark, count);
+  const visor = new THREE.CylinderGeometry(S.lens * 1.15, S.lens * 1.15, 0.22, 12, 1, true, -Math.PI / 2, Math.PI).rotateX(Math.PI / 2).translate(0, 0, 0.11);
+  const visors = new THREE.InstancedMesh(visor, new THREE.MeshStandardMaterial({ color: S.color, side: THREE.DoubleSide }), count * 3);
+  // Lente: um disco virado para quem chega (só a face da frente é desenhada). Uma malha por posição: vermelho, amarelo, verde.
+  const lenses = ['vermelho', 'amarelo', 'verde'].map(() => new THREE.InstancedMesh(new THREE.CircleGeometry(S.lens, 20), new THREE.MeshBasicMaterial(), count));
+  const watched = heads.map((_, i) => i).filter((i) => cameras.has(heads[i].nodeId));
+  const radars = new THREE.InstancedMesh(new THREE.BoxGeometry(0.6, 0.4, 0.5), new THREE.MeshStandardMaterial({ color: LOOK.radar }), watched.length);
+
+  const base = new THREE.Matrix4();
+  const local = new THREE.Matrix4();
+  const out = new THREE.Matrix4();
+  const place = (mesh, i, x, y, z, sx = 1) => mesh.setMatrixAt(i, out.multiplyMatrices(base, local.makeScale(sx, 1, 1).setPosition(x, y, z)));
+  const headY = S.height - S.housing.h / 2 - 0.1;
+  const lensY = [S.lensGap, 0, -S.lensGap];
 
   heads.forEach(({ nodeId, edgeId }, i) => {
     const node = city.nodes[nodeId];
@@ -136,24 +148,25 @@ export function createSignalsView({ scene, city, signals, cameras }) {
     const into = edge.b === nodeId ? 1 : -1; // sentido de quem chega no cruzamento
     const dx = edge.dir.x * into;
     const dz = edge.dir.z * into;
-    const side = edge.halfWidth + LOOK.pole.offset; // à direita de quem chega
-    matrix.makeTranslation(node.x - dx * node.radius - dz * side, 0, node.z - dz * node.radius + dx * side);
-    poles.setMatrixAt(i, matrix);
-    lamps.setMatrixAt(i, matrix);
+    // Referencial do semáforo: origem na linha de retenção, +X para a direita de quem chega, +Z de frente para ele.
+    base.makeRotationY(Math.atan2(-dx, -dz)).setPosition(node.x - dx * node.radius, 0, node.z - dz * node.radius);
+    const poleX = edge.halfWidth + S.curb;
+    const headX = edge.oneWay ? 0 : edge.halfWidth / 2; // sobre o meio das faixas de quem chega
+    place(poles, i, poleX, 0, 0);
+    place(arms, i, (poleX + headX) / 2, S.height, 0, poleX - headX + 0.3);
+    place(housings, i, headX, headY, 0);
+    lensY.forEach((y, k) => {
+      place(lenses[k], i, headX, headY + y, S.housing.d / 2 + 0.01);
+      place(visors, i * 3 + k, headX, headY + y, S.housing.d / 2);
+    });
+    const r = watched.indexOf(i);
+    if (r >= 0) place(radars, r, poleX - 0.2, S.height + 0.45, 0.1);
   });
-  // Radar: uma caixa laranja no alto dos postes dos cruzamentos fiscalizados.
-  const watched = heads.map((head, i) => i).filter((i) => cameras.has(heads[i].nodeId));
-  const boxes = new THREE.InstancedMesh(
-    new THREE.BoxGeometry(LOOK.camera.size, LOOK.camera.size * 0.6, LOOK.camera.size).translate(0, LOOK.pole.height + LOOK.camera.lift, 0),
-    new THREE.MeshBasicMaterial({ color: LOOK.camera.color }),
-    watched.length,
-  );
-  watched.forEach((head, k) => {
-    lamps.getMatrixAt(head, matrix);
-    boxes.setMatrixAt(k, matrix);
-  });
-  scene.add(poles, lamps, boxes);
+  scene.add(poles, arms, housings, visors, ...lenses, radars);
 
+  const color = new THREE.Color();
+  const shown = new Array(count).fill('');
+  const slots = ['vermelho', 'amarelo', 'verde'];
   return {
     update() {
       let changed = false;
@@ -161,10 +174,10 @@ export function createSignalsView({ scene, city, signals, cameras }) {
         const state = signals.stateFor(nodeId, edgeId);
         if (state === shown[i]) return;
         shown[i] = state;
-        lamps.setColorAt(i, color.setHex(LOOK.colors[state]));
+        slots.forEach((slot, k) => lenses[k].setColorAt(i, color.setHex(slot === state ? LOOK.colors[slot] : LOOK.off[slot])));
         changed = true;
       });
-      if (changed) lamps.instanceColor.needsUpdate = true;
+      if (changed) for (const lens of lenses) lens.instanceColor.needsUpdate = true;
     },
   };
 }
