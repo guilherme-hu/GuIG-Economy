@@ -154,6 +154,7 @@ export const config = {
     crashSpeed: kmh(40), // impacto acima disso = acidente, fim de jogo
     damageSpeed: kmh(20), // entre isso e o acidente: a moto quebra e o conserto sai do seu bolso
     repairCost: 35,
+    crashScreenDelay: 2.4, // s de efeito do acidente antes da tela de fim
     repairCooldown: 2, // s: raspar na parede não cobra um conserto por passo
     cameraShare: 0.3, // fração dos cruzamentos com semáforo que têm radar
     cameraWarnDistance: 180, // m: o GPS avisa do radar a partir daqui

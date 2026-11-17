@@ -28,6 +28,7 @@ import { createPhone } from './ui/phone/phone.js';
 import { copy } from './ui/copy.js';
 import { createHud } from './ui/hud.js';
 import { createWarning } from './ui/warning.js';
+import { createTutorial } from './ui/tutorial.js';
 import { distance as meters } from './ui/format.js';
 import { createScreens } from './ui/screens.js';
 
@@ -84,6 +85,7 @@ stage.onResize(chase.resize);
 const ui = document.getElementById('ui');
 const hud = createHud(ui);
 const warning = createWarning(ui);
+const tutorial = createTutorial(ui);
 const markers = createMarkersView({ scene: stage.scene });
 const phone = createPhone(ui, { onAccept: (id) => jobs.accept(id, bike), onDecline: (id) => jobs.decline(id) });
 events.on('job:pickup', ({ job }) => phone.notify(copy.notify.pickup(job.offer.customer.name)));
@@ -99,20 +101,32 @@ events.on('fine', ({ kind, amount }) => {
   const notice = copy.notify.fineWrongWay(amount);
   phone.notify(kind === 'calcada' ? { ...notice, text: 'Trânsito na calçada. O valor já saiu do seu saldo.' } : notice);
 });
-events.on('crash', () => {
-  sim.phase = 'fim';
+events.on('crash', ({ relSpeed }) => {
+  sim.phase = 'acidente'; // a simulação para; o efeito roda e só depois vem a tela
+  bikeView.crash(relSpeed);
+  warning.show('');
+  phone.close();
   hud.flash('batida');
+  setTimeout(showAccident, config.rules.crashScreenDelay * 1000);
+});
+function showAccident() {
+  sim.phase = 'fim';
   hud.setVisible(false);
   warning.show('');
   phone.close();
   const { perHour } = economy.statement();
   const stats = { days: economy.career.days + 1, deliveries: economy.career.deliveries + economy.day.deliveries, earned: economy.money, perHour };
   screens.show('fim', { reason: 'acidente', stats });
-});
-const screens = createScreens(ui, { onStart: startShift, onResume: resume, onNextDay: startShift, onRestart: () => location.reload() });
+}
+const screens = createScreens(ui, { onStart: firstShift, onResume: resume, onNextDay: startShift, onRestart: () => location.reload() });
 hud.setVisible(false);
 if (!debugMap) screens.show('menu');
 
+/** Primeiro turno: passa pelas instruções (a não ser que o jogador já as tenha dispensado). */
+function firstShift() {
+  screens.hide();
+  tutorial.show(startShift);
+}
 function startShift() {
   sim.phase = 'turno';
   economy.startDay();
@@ -171,14 +185,14 @@ const loop = createLoop({
     rules.step(dt);
   },
   render(alpha, frameDt) {
-    const riding = sim.phase === 'turno' && !debugMap;
+    const riding = (sim.phase === 'turno' || sim.phase === 'acidente') && !debugMap;
     const view = riding ? chase : aerial;
     view.update(frameDt);
-    bikeView.update();
+    bikeView.update(frameDt);
     trafficView.update();
     signalsView.update();
     markers.update(jobs.active?.target, sim.time);
-    if (riding) {
+    if (sim.phase === 'turno' && !debugMap) {
       hud.update(sim);
       updateWarning();
       phone.update(sim);

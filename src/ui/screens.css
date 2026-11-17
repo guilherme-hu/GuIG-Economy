@@ -573,3 +573,91 @@
   letter-spacing: -0.03em;
   white-space: nowrap;
 }
+
+/* Tutorial do primeiro turno */
+.tutorial {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(10, 11, 16, 0.78);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+.tutorial[hidden] {
+  display: none;
+}
+.tutorial__panel {
+  width: min(880px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 28px 32px;
+  border-radius: 20px;
+  background: #171922;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+.tutorial__eyebrow {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+.tutorial h2 {
+  margin: 0 0 20px;
+  font-size: 28px;
+}
+.tutorial__rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px 28px;
+}
+.tutorial__rules li {
+  display: flex;
+  gap: 12px;
+}
+.tutorial__icon {
+  font-size: 22px;
+  line-height: 1.2;
+}
+.tutorial__rules h3 {
+  margin: 0 0 2px;
+  font-size: 15px;
+}
+.tutorial__rules p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+.tutorial__rules b {
+  color: var(--text);
+}
+.tutorial__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.tutorial__skip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.tutorial__skip input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand);
+}

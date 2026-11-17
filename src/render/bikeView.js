@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { createCrashView } from './crashView.js';
 
 const LOOK = {
   brand: 0xc8ff2e, // baú do Rapidão
@@ -22,11 +23,20 @@ export function createBikeView({ scene, bike }) {
   scene.add(root);
 
   const wheels = buildBike(tilt);
-  loadRider(tilt);
+  let rider = null;
+  loadRider(tilt, (model) => (rider = model));
+  const crash = createCrashView({ root, tilt, getRider: () => rider });
+  let crashed = false;
 
   return {
     object: root,
-    update() {
+    /** Acidente: a moto tomba e o piloto é arremessado. `speed` em m/s. */
+    crash(speed) {
+      crashed = true;
+      crash.start(speed);
+    },
+    update(dt) {
+      if (crashed) return crash.update(dt);
       root.position.set(bike.x, 0, bike.z);
       root.rotation.y = -bike.heading;
       tilt.rotation.x = bike.lean;
@@ -68,7 +78,7 @@ function buildBike(parent) {
   return wheels;
 }
 
-function loadRider(parent) {
+function loadRider(parent, onLoad) {
   new GLTFLoader().load(import.meta.env.BASE_URL + LOOK.riderModel, (gltf) => {
     const rider = gltf.scene;
     rider.scale.setScalar(LOOK.riderScale);
@@ -81,5 +91,6 @@ function loadRider(parent) {
       mixer.update(0); // pose fixa: sentado, mãos à frente
     }
     parent.add(rider);
+    onLoad(rider);
   });
 }
