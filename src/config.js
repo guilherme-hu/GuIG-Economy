@@ -21,6 +21,47 @@ export const config = {
     street: { lanes: 1, laneWidth: 3.4, speedLimit: kmh(50) },
     avenue: { lanes: 2, laneWidth: 3.3, speedLimit: kmh(70) },
     sidewalk: 3.2,
+
+    // Posições em fração de `size` (−0,5 a +0,5), com (0, 0) no meio do mapa.
+    river: { startZ: -0.2, endZ: 0.27, meander: 55, waves: 1.6, segments: 40 },
+    bankNorth: 26, // da beira d'água ao eixo da marginal
+    bankSouth: 26, // da beira d'água ao primeiro cruzamento do lado sul
+    diagonals: [
+      { from: [-0.46, 0.4], to: [0.44, -0.46] },
+      { from: [0, -0.48], to: [0.3, 0.47] },
+    ],
+    edgeMargin: 40, // faixa livre entre as ruas e a borda do mundo
+    avenueClear: 0.42, // em nodeSpacing: a malha não põe cruzamento mais perto que isso de uma avenida
+    hookMax: 1.25, // em nodeSpacing: comprimento máximo de uma travessa ligando a malha à avenida
+    hookAngle: 0.7, // rad: ângulo mínimo entre a travessa e a avenida
+
+    centro: { x: 0.08, z: -0.15, radius: 0.24, rotation: 0.26, squeeze: 0.16, core: 0.45 },
+    industrial: { x: 0.3, z: 0.36, radius: 0.3 },
+    jitterScale: { centro: 0.5, bairro: 1, industrial: 0.6 },
+    removalScale: { centro: 0.45, bairro: 1.15, industrial: 0.3 }, // multiplica edgeRemoval
+    deadEnds: 12, // mínimo de becos sem saída, todos no Bairro
+
+    restaurantsInCentro: 0.75,
+    poiSpacing: 30,
+    homeFromCentro: 0.3, // em size: distância mínima da casa ao Centro
+
+    lots: {
+      setback: 1.5, // recuo entre a calçada e a fachada
+      gap: [1.5, 6],
+      riverMargin: 4,
+      // frente (w) e fundo (d) de cada tipo de lote
+      predio: { w: [18, 26], d: [18, 24] },
+      'arranha-ceu': { w: [24, 32], d: [24, 30] },
+      casa: { w: [12, 17], d: [12, 16] },
+      galpao: { w: [34, 56], d: [28, 40] },
+      praca: { w: [26, 38], d: [24, 32] },
+      mix: {
+        centro: { predio: 0.96, praca: 0.04 },
+        bairro: { casa: 0.88, predio: 0.06, praca: 0.06 },
+        industrial: { galpao: 0.92, predio: 0.08 },
+      },
+      skyscraperShare: 0.5, // dos prédios dentro do miolo do Centro
+    },
   },
 
   bike: {

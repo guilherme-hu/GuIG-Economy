@@ -123,6 +123,7 @@ Cada marco é uma issue no GitHub e termina com o jogo rodando, verificado confo
   *Aceite:* página abre sem erro no console; `npm test` roda (mesmo com 1 teste trivial de `rng`).
 - [ ] **M1 — Mapa.** (#2) `map.js` completo com testes; `world.js` desenha ruas, rio, pontes, prédios. Câmera aérea de debug (`?debug=mapa`).
   *Aceite:* testes do mapa passam; screenshot aéreo mostra claramente os 3 distritos, o rio, as 3 pontes e as diagonais — **não é uma grade**.
+  *Andamento (branch `m1-mapa`):* gerador, grafo e testes prontos (`src/sim/city/`, `test/generator.test.js`, `test/graph.test.js`). Falta a parte visual: `render/` e a câmera `?debug=mapa`.
 - [ ] **M2 — Moto.** (#3) Controles, câmera 3ª pessoa, limite de rua/prédio, inclinação, `teleport`.
   *Aceite:* dá para atravessar a cidade de uma ponta à outra sem atravessar prédio; screenshot em 3ª pessoa legível.
 - [ ] **M3 — Celular, ofertas e GPS.** (#4) `jobs.js` com testes, celular com 3 telas, A*, marcadores, coleta/entrega, cronômetro, seta de próxima curva, `autopilot` e `acceptOffer`.

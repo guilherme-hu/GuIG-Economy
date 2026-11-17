@@ -8,13 +8,17 @@ import { createEvents } from './core/events.js';
 import { createRng } from './core/rng.js';
 import { createLoop } from './core/loop.js';
 import { createInput } from './core/input.js';
+import { generateCity } from './sim/city/generator.js';
+import { createGraph } from './sim/city/graph.js';
 
 const canvas = document.getElementById('jogo');
 const events = createEvents();
 const rng = createRng(config.seed);
 const input = createInput();
 
-const sim = { time: 0, phase: 'menu' };
+const city = generateCity(config.city, rng.fork('cidade'));
+const graph = createGraph(city);
+const sim = { time: 0, phase: 'menu', city, graph };
 
 // Cena provisória do M0; a onda 1 troca por render/scene.js.
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -59,6 +63,10 @@ window.__game = {
   rng,
   input,
   loop,
-  state: () => ({ time: sim.time, phase: sim.phase }),
+  state: () => ({
+    time: sim.time,
+    phase: sim.phase,
+    city: { nodes: city.nodes.length, edges: city.edges.length, pois: city.pois.length, lots: city.lots.length },
+  }),
   setTimeScale: (n) => (loop.timeScale = n),
 };
