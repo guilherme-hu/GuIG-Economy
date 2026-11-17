@@ -104,23 +104,25 @@ O robô dirige pior que uma pessoa no trânsito denso: mesmo depois de aprender 
 | Cenário | O que representa | Entregas por dia | Líquido por dia | Pagou as contas |
 |---|---|---|---|---|
 | Sem trânsito nem sinais (seção 3) | o teto: a cidade vazia | 10–11 | R$ 60–71 | 3 de 3 dias |
-| **Com sinais e radares, sem carros** (`bom+sinais`) | quem costura bem perde tempo só nos sinais e cruzamentos: **a estimativa para uma pessoa jogando bem** | 6–9 | −R$ 35 a +R$ 54 (positivo em 7 de 9 dias) | 3 de 9 dias |
+| **Com sinais e radares, sem carros** (`bom+sinais`) | quem costura bem perde tempo só nos sinais e cruzamentos: **a estimativa para uma pessoa jogando bem** | 7–10 | R$ 35 a R$ 69 (positivo em todos os dias) | 2 de 9 dias |
 | Trânsito completo (`bom`) | o piso: o robô travado no trânsito | 0–2 | negativo | nenhum |
 
-E no cenário com sinais e sem carros, comparando perfis (3 dias × 3 sementes):
+E no cenário com sinais e sem carros, comparando perfis (3 dias × 3 sementes, escolhendo pela maior R$/km):
 
-| Perfil | Entregas por dia | Líquido por dia | Pagou as contas |
-|---|---|---|---|
-| cauteloso (respeita tudo, no limite da via) | 6–9 | −R$ 61 a +R$ 60 | 1 de 9 dias |
-| bom (rápido, respeita sinal) | 6–9 | −R$ 35 a +R$ 54 | 3 de 9 dias |
-| apressado (fura o vermelho onde não há radar) | 7–11 | +R$ 26 a +R$ 84 | **7 de 9 dias** |
+| Perfil | Entregas por dia | Líquido por dia | Multas | Pagou as contas |
+|---|---|---|---|---|
+| cauteloso (respeita tudo, no limite da via) | 6–9 | R$ 26 a R$ 59 | nenhuma | 2 de 9 dias; despejado numa das 3 sementes |
+| bom (rápido, respeita sinal) | 7–10 | R$ 35 a R$ 69 | nenhuma | 2 de 9 dias; despejado em 2 das 3 sementes |
+| apressado (fura o vermelho onde não há radar e acelera no amarelo) | 9–12 | R$ 36 a R$ 105 | 4 em 9 dias | **6 de 9 dias**; nunca despejado |
 
-No trânsito completo, o apressado e o kamikaze sofrem acidente em quase todas as rodadas, nos primeiros minutos.
+No trânsito completo (3 sementes, as duas estratégias), o robô cauteloso sofreu acidente em 3 de 6 rodadas e teve a conta desativada nas outras 3, travado em impasses. O apressado bateu em 4 de 6 rodadas, quase sempre nos primeiros 5 minutos.
 
 O que isso mostra:
-- **Jogando bem dá lucro, mas não dá para viver.** O líquido do dia fica positivo na maioria dos dias (é melhor que ficar em casa), mas só paga as contas de um salário mínimo em cerca de 1 dia a cada 3.
-- **Furar sinal compensa no bolso**: quem fura o vermelho onde não há radar paga as contas em quase todos os dias. É o incentivo perverso que o jogo quer mostrar.
-- **E furar sinal cobra na pele**: no trânsito de verdade, os mesmos perfis apressados batem nos primeiros minutos.
-- **Uma multa apaga o dia.** Mesmo os perfis que respeitam o sinal levam uma multa de radar de vez em quando (passando no fim do amarelo), e R$ 29,35 basta para o dia não fechar.
+- **Jogando dentro da lei dá lucro, mas não dá para viver.** O cauteloso fecha todo dia no positivo e quase nunca alcança a conta de um salário mínimo: fica entre R$ 26 e R$ 59 quando precisa de R$ 46,80 a R$ 49,65.
+- **Furar sinal compensa no bolso**: o apressado ganha quase o dobro e paga as contas em 2 de cada 3 dias, mesmo levando multa. É o incentivo perverso que o jogo quer mostrar.
+- **E furar sinal cobra na pele**: no trânsito de verdade, ele bate nos primeiros minutos.
+- **Uma multa apaga o dia.** Dos quatro dias em que o apressado foi multado (R$ 29,35), em três ele não pagou as contas.
+
+**Ajustes do M7.** O amarelo passou de 2,2 s para 3 s, o mínimo que o Manual Brasileiro de Sinalização Semafórica recomenda. E o robô cauteloso tinha um defeito: decidia parar no amarelo, mas perto da linha a conta de "dá para parar" mudava de resposta e ele acelerava de novo, entrando no vermelho. Era isso que gerava as multas de quem "respeita todo sinal" na tabela anterior. Agora ele mantém a decisão de parar, e o perfil apressado ganhou a opção de nunca parar no amarelo (`stopOnYellow: false`).
 
 Para rodar: `node scripts/balance.js 3 cauteloso+sinais,bom+sinais,apressado+sinais 3`.
