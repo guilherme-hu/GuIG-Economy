@@ -147,3 +147,18 @@ test('passar pela boca de uma ponte, na faixa do lado dela, não bate em parede 
   }
   assert.ok(passes >= 4, `${passes} passagens testadas`);
 });
+
+test('freada trava a traseira, conserva a trajetória em reta e recupera aderência ao soltar', () => {
+  for (const steer of [-1, 0, 1]) {
+    const bike = newBike();
+    bike.speed = 20;
+    run(bike, { brake: true, steer }, 0.2);
+    assert.equal(bike.rearLocked, true);
+    assert.equal(Math.sign(bike.slipAngle), steer);
+    assert.ok(Math.abs(bike.heading - bike.slipAngle) <= Math.abs(bike.heading));
+    if (steer === 0) assert.equal(bike.z, 0);
+    run(bike, {}, 0.3);
+    assert.equal(bike.rearLocked, false);
+    assert.equal(bike.slipAngle, 0);
+  }
+});

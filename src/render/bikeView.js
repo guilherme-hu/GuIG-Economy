@@ -34,6 +34,8 @@ export function createBikeView({ scene, bike }) {
   headlight.target.position.set(14, 0, 0);
   root.add(headlight, headlight.target);
   let crashed = false;
+  let rearSlip = 0;
+  let lastDistance = bike.distance;
 
   return {
     object: root,
@@ -46,13 +48,17 @@ export function createBikeView({ scene, bike }) {
     setNight(k) {
       headlight.intensity = k * 60;
     },
-    update(dt) {
+    update(dt, burnout) {
       if (crashed) return crash.update(dt);
       root.position.set(bike.x, 0, bike.z);
       root.rotation.y = -bike.heading;
       tilt.rotation.x = bike.lean;
       const spin = -bike.distance / LOOK.wheelRadius;
-      wheels.forEach((wheel) => (wheel.rotation.z = spin));
+      if (bike.rearLocked) rearSlip -= (bike.distance - lastDistance) / LOOK.wheelRadius;
+      lastDistance = bike.distance;
+      if (burnout) rearSlip = (rearSlip + 27 * dt) % (2 * Math.PI);
+      wheels[0].rotation.z = spin;
+      wheels[1].rotation.z = spin - rearSlip;
     },
   };
 }
@@ -73,6 +79,12 @@ export function buildBike(parent) {
   const wheels = [half, -half].map((x) => {
     const wheel = add(tire, mat(LOOK.dark, { roughness: 0.9 }), x, r);
     wheel.add(new THREE.Mesh(hub, mat(LOOK.metal, { metalness: 0.6 })));
+    const spoke = new THREE.BoxGeometry(r * 1.6, 0.022, 0.045);
+    for (let i = 0; i < 3; i++) {
+      const bar = new THREE.Mesh(spoke, wheel.children[0].material);
+      bar.rotation.z = i * Math.PI / 3;
+      wheel.add(bar);
+    }
     return wheel;
   });
 

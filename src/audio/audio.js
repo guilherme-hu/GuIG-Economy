@@ -3,8 +3,8 @@
  * e efeitos curtos (celular, dinheiro, radar, batida). O navegador só libera o som depois de um clique
  * ou tecla: `unlock()` cria o contexto nessa hora.
  */
-const GEARS = [0, 22, 45, 72, 100, 140]; // km/h onde cada marcha começa
-const ENGINE = { idle: 48, span: 95, gain: 0.07, throttleGain: 0.05 };
+import { createBikeEngine } from './bikeEngine.js';
+const MASTER_VOLUME = 0.04;
 const STORAGE_KEY = 'guig.som.mudo';
 
 export function createAudio() {
@@ -12,16 +12,18 @@ export function createAudio() {
   let master = null;
   let engine = null;
   let horn = null;
+  let tire = null;
   let muted = load();
 
   function unlock() {
     if (ctx) return ctx.state === 'suspended' && ctx.resume();
     ctx = new AudioContext();
     master = ctx.createGain();
-    master.gain.value = muted ? 0 : 0.8;
+    master.gain.value = muted ? 0 : MASTER_VOLUME;
     master.connect(ctx.destination);
-    engine = createEngine();
+    engine = createBikeEngine(ctx, master);
     horn = createHorn();
+    tire = createTireSqueal();
     createCityHum();
   }
 
@@ -37,24 +39,37 @@ export function createAudio() {
     };
   })();
 
-  function createEngine() {
-    const low = ctx.createOscillator();
-    const high = ctx.createOscillator();
-    low.type = 'sawtooth';
-    high.type = 'square';
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.Q.value = 4;
-    const gain = ctx.createGain();
-    gain.gain.value = 0;
-    const highGain = ctx.createGain();
-    highGain.gain.value = 0.35;
-    low.connect(filter);
-    high.connect(highGain).connect(filter);
-    filter.connect(gain).connect(master);
-    low.start();
-    high.start();
-    return { low, high, filter, gain };
+  function createTireSqueal() {
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer();
+    noise.loop = true;
+    const scrape = ctx.createBiquadFilter();
+    scrape.type = 'bandpass';
+    scrape.Q.value = 0.85;
+    const squeak = ctx.createBiquadFilter();
+    squeak.type = 'bandpass';
+    squeak.Q.value = 3.2;
+    const squeakLevel = ctx.createGain();
+    const level = ctx.createGain();
+    level.gain.value = 0;
+    noise.connect(scrape).connect(level);
+    noise.connect(squeak).connect(squeakLevel).connect(level);
+    level.connect(master);
+    noise.start();
+
+    // A borracha alterna entre agarrar e deslizar em intervalos irregulares.
+    let nextGrip = 0;
+    let bite = 0;
+    return function updateTire(slip, now) {
+      if (slip > 0 && now >= nextGrip) {
+        bite = Math.random();
+        nextGrip = now + 0.024 + Math.random() * 0.065;
+        squeak.frequency.setTargetAtTime(950 + 480 * slip + 550 * bite, now, 0.018);
+        squeakLevel.gain.setTargetAtTime(0.18 + 0.64 * bite, now, 0.012);
+      }
+      scrape.frequency.setTargetAtTime(410 + 570 * slip, now, 0.045);
+      level.gain.setTargetAtTime(slip * (0.4 + 0.12 * bite), now, 0.025);
+    };
   }
 
   function createHorn() {
@@ -145,23 +160,15 @@ export function createAudio() {
       try {
         localStorage.setItem(STORAGE_KEY, muted ? '1' : '');
       } catch {}
-      if (master) master.gain.setTargetAtTime(muted ? 0 : 0.8, ctx.currentTime, 0.05);
+      if (master) master.gain.setTargetAtTime(muted ? 0 : MASTER_VOLUME, ctx.currentTime, 0.05);
       return muted;
     },
     /** A cada quadro: motor pela velocidade e acelerador; buzina pela tecla. `riding` = false silencia o motor. */
-    update({ speed, throttle, horn: honking, riding }) {
+    update({ speed, throttle, horn: honking, riding, burnout, skid = 0 }) {
       if (!ctx) return;
       const now = ctx.currentTime;
-      const kmh = Math.abs(speed) * 3.6;
-      const gear = Math.max(0, GEARS.findLastIndex((start) => kmh >= start));
-      const span = (GEARS[gear + 1] ?? GEARS[gear] + 40) - GEARS[gear];
-      const rpm = Math.min((kmh - GEARS[gear]) / span, 1);
-      const frequency = ENGINE.idle + rpm * ENGINE.span + gear * 6;
-      engine.low.frequency.setTargetAtTime(frequency, now, 0.05);
-      engine.high.frequency.setTargetAtTime(frequency * 2.01, now, 0.05);
-      engine.filter.frequency.setTargetAtTime(400 + rpm * 900 + Math.max(throttle, 0) * 600, now, 0.08);
-      const volume = riding ? ENGINE.gain + Math.max(throttle, 0) * ENGINE.throttleGain : 0;
-      engine.gain.gain.setTargetAtTime(volume, now, 0.1);
+      engine(speed, throttle, riding, burnout);
+      tire(riding ? skid : 0, now);
       horn.gain.setTargetAtTime(riding && honking ? 0.08 : 0, now, 0.02);
     },
   };
