@@ -1,5 +1,6 @@
 /** Veículos (modelos instanciados) e semáforos (poste + lâmpada colorida por aproximação). */
 import * as THREE from 'three';
+import { buildBike } from './bikeView.js';
 
 const LOOK = {
   carYaw: Math.PI / 2, // os carros da Kenney têm a frente em +Z
@@ -7,12 +8,17 @@ const LOOK = {
   lamp: { width: 0.42, height: 1.15 },
   camera: { size: 0.7, lift: 1.1, color: 0xff8a1f }, // caixa do radar, acima da lâmpada
   colors: { verde: 0x3dff7a, amarelo: 0xffc93d, vermelho: 0xff3b30 },
+  bag: 0xc8ff2e, // o baú, que ganha a cor do app de cada entregador
+  apps: [0xff3b30, 0xff8a00, 0x8b3dff, 0x00a8ff, 0xc8ff2e],
+  jacket: 0x2b2f3d,
+  helmet: 0xe9ecf2,
 };
 
 export function createTrafficView({ scene, assets, traffic, fleet }) {
   const dummy = new THREE.Object3D();
   let batches = null; // model → { meshes, scale, count }
 
+  const motos = createMotoBatch(scene, traffic.vehicles.length);
   assets.loadAll([...new Set(fleet.map((kind) => kind.model))]).then((models) => {
     batches = new Map();
     for (const kind of fleet) {
@@ -31,8 +37,13 @@ export function createTrafficView({ scene, assets, traffic, fleet }) {
     update() {
       if (!batches) return;
       for (const batch of batches.values()) batch.count = 0;
+      motos.begin();
       for (const v of traffic.vehicles) {
         if (!v.active) continue;
+        if (v.type === 'moto') {
+          motos.add(v);
+          continue;
+        }
         const batch = batches.get(v.model);
         dummy.position.set(v.x, 0, v.z);
         dummy.rotation.y = LOOK.carYaw - v.heading;
@@ -47,6 +58,58 @@ export function createTrafficView({ scene, assets, traffic, fleet }) {
           mesh.instanceMatrix.needsUpdate = true;
         }
       }
+      motos.end();
+    },
+  };
+}
+
+/** Motos do trânsito: a mesma moto do jogador, com um piloto simples e o baú na cor de cada app. */
+function createMotoBatch(scene, capacity) {
+  const model = new THREE.Group();
+  buildBike(model);
+  const mat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.4, 4, 8), mat(LOOK.jacket));
+  torso.position.set(-0.25, 1.25, 0);
+  torso.rotation.z = -0.35; // inclinado para a frente
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), mat(LOOK.helmet));
+  helmet.position.set(-0.08, 1.68, 0);
+  model.add(torso, helmet);
+  model.updateMatrixWorld(true);
+
+  const meshes = [];
+  let bag = null;
+  model.traverse((part) => {
+    if (!part.isMesh) return;
+    const isBag = part.material.color?.getHex() === LOOK.bag;
+    const material = isBag ? part.material.clone() : part.material;
+    if (isBag) material.color.set(0xffffff); // a cor vem de cada instância
+    const mesh = new THREE.InstancedMesh(part.geometry.clone().applyMatrix4(part.matrixWorld), material, capacity);
+    mesh.frustumCulled = false;
+    mesh.count = 0;
+    meshes.push(mesh);
+    if (isBag) bag = mesh;
+    scene.add(mesh);
+  });
+
+  const dummy = new THREE.Object3D();
+  const color = new THREE.Color();
+  let count = 0;
+  return {
+    begin: () => (count = 0),
+    add(v) {
+      dummy.position.set(v.x, 0, v.z);
+      dummy.rotation.y = -v.heading; // a moto tem a frente em +X
+      dummy.updateMatrix();
+      for (const mesh of meshes) mesh.setMatrixAt(count, dummy.matrix);
+      bag.setColorAt(count, color.setHex(LOOK.apps[v.id % LOOK.apps.length]));
+      count++;
+    },
+    end() {
+      for (const mesh of meshes) {
+        mesh.count = count;
+        mesh.instanceMatrix.needsUpdate = true;
+      }
+      if (bag.instanceColor) bag.instanceColor.needsUpdate = true;
     },
   };
 }

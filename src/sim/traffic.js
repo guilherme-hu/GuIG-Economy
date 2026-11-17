@@ -9,7 +9,7 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   const bikeBody = { length: 2, width: 0.8 };
   const vehicles = Array.from({ length: cfg.poolSize }, (_, id) => ({
     id, active: false, type: 'carro', model: '', x: 0, z: 0, heading: 0, speed: 0, length: 4, width: 2, braking: false,
-    edge: 0, forward: true, s: 0, lane: 0, pace: 1, runsRed: false, stuck: 0, inNode: -1, next: -1,
+    edge: 0, forward: true, s: 0, lane: 0, pace: 1, runsRed: false, reckless: false, stuck: 0, inNode: -1, next: -1,
   }));
   // Um cruzamento por vez pertence a UMA faixa de chegada: quem vem das outras espera esvaziar.
   // É isso que impede os carros de se atravessarem ao cruzar e ao virar.
@@ -83,10 +83,11 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   /** Vermelho, amarelo que ainda dá para respeitar, cruzamento ocupado por outra faixa ou sem espaço na saída. */
   function mustWait(v, nodeId, stopAt) {
     const light = signals.stateFor(nodeId, v.edge);
-    if (light === 'vermelho') return true;
+    if (light === 'vermelho') return !(v.reckless && v.runsRed);
     // No amarelo para quem consegue parar; quem está quase parado na linha não arranca. Os 'furões' passam...
     const stopsOnYellow = !v.runsRed && (v.speed < cfg.crawlSpeed || (v.speed * v.speed) / (2 * cfg.hardBrake) < stopAt - v.s);
     if (light === 'amarelo' && stopsOnYellow) return true;
+    if (v.reckless) return !canEnter(nodeId, v); // moto fura o sinal e não espera a saída, mas não passa por dentro de um carro
     // ...mas ninguém entra num cruzamento ocupado: dois carros se cruzando lá dentro travariam um ao outro.
     return !canEnter(nodeId, v) || !exitClear(v, nodeId);
   }
@@ -118,14 +119,16 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
       const dz = other.z - v.z;
       const along = dx * fx + dz * fz;
       if (along <= 0 || along > cfg.lookAhead) return;
-      if (Math.abs(dx * fz - dz * fx) > (v.width + body.width) / 2) return;
+      if (Math.abs(dx * fz - dz * fx) > ((v.width + body.width) / 2) * cfg.corridorFit) return;
       gap = Math.min(gap, along - (v.length + body.length) / 2);
     };
     for (const w of vehicles) {
       if (!w.active || w === v) continue;
+      if (Math.cos(w.heading - v.heading) < -0.5) continue; // quem vem no sentido contrário está na outra mão
       check(w, w);
       // Na mesma faixa vale a distância ao longo da via: numa curva o corredor reto não enxerga quem está à frente.
-      if (w.edge === v.edge && w.forward === v.forward && w.lane === v.lane && w.s > v.s) gap = Math.min(gap, w.s - v.s - (v.length + w.length) / 2);
+      // A moto não respeita a fila dos carros, só a das outras motos no corredor.
+      if ((!v.reckless || w.reckless) && w.edge === v.edge && w.forward === v.forward && w.lane === v.lane && w.s > v.s) gap = Math.min(gap, w.s - v.s - (v.length + w.length) / 2);
     }
     check(focus, bikeBody);
     return gap;
@@ -145,7 +148,8 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   function place(v, k) {
     const edge = edges[v.edge];
     const side = v.forward ? 1 : -1;
-    const lateral = (v.lane + 0.5) * (edge.halfWidth / edge.lanes) * side;
+    const laneWidth = edge.halfWidth / edge.lanes;
+    const lateral = (v.reckless ? v.lane * laneWidth + cfg.motoLine : (v.lane + 0.5) * laneWidth) * side;
     const t = Math.min(1, Math.max(0, v.s / edge.length));
     graph.pointOnEdge(v.edge, v.forward ? t : 1 - t, lateral, point);
     const heading = Math.atan2(edge.dir.z * side, edge.dir.x * side);
@@ -172,9 +176,11 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
       const distance = Math.hypot(point.x - focus.x, point.z - focus.z);
       if (distance < cfg.spawnMin || distance > cfg.spawnMax) continue;
       if (vehicles.some((w) => w.active && Math.hypot(w.x - point.x, w.z - point.z) < cfg.spawnClearance)) continue;
-      Object.assign(v, rng.pick(cfg.fleet), {
+      const moto = rng.chance(cfg.motoShare);
+      Object.assign(v, { reckless: false }, moto ? cfg.moto : rng.pick(cfg.fleet), {
         active: true, edge: edge.id, forward, lane: rng.int(0, edge.lanes - 1),
-        pace: 1 + rng.range(-cfg.speedVariance, cfg.speedVariance), runsRed: rng.chance(cfg.runRedShare), stuck: 0, inNode: -1, next: -1,
+        pace: moto ? rng.range(...cfg.motoPace) : 1 + rng.range(-cfg.speedVariance, cfg.speedVariance),
+        runsRed: rng.chance(moto ? cfg.motoRunRed : cfg.runRedShare), stuck: 0, inNode: -1, next: -1,
       });
       v.s = t * edge.length;
       v.speed = 0; // nasce parado: longe da vista, e nunca em cima de um sinal vermelho sem espaço para frear

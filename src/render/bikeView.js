@@ -46,7 +46,7 @@ export function createBikeView({ scene, bike }) {
   };
 }
 
-function buildBike(parent) {
+export function buildBike(parent) {
   const mat = (color, extra) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, ...extra });
   const add = (geometry, material, x, y, z = 0) => {
     const mesh = new THREE.Mesh(geometry, material);

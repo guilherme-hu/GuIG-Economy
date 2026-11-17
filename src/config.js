@@ -138,6 +138,13 @@ export const config = {
     smoothing: 8, // quão rápido a posição desenhada segue a faixa (suaviza as curvas)
     stuckTime: 10,
     stuckMinDistance: 40,
+    // Outros entregadores: andam acima do limite, costuram no corredor e furam sinal.
+    motoShare: 0.22, // fração do trânsito que é moto
+    moto: { type: 'moto', model: 'moto', length: 2, width: 0.8, reckless: true },
+    motoPace: [1.15, 1.55], // múltiplo do limite da via
+    motoRunRed: 0.6, // fração das motos que fura o vermelho
+    motoLine: 0.3, // m à direita da faixa pintada: é por ali que elas costuram
+    corridorFit: 0.9, // fração da largura somada que conta como "no caminho" (deixa a moto passar raspando)
     fleet: [
       { type: 'carro', model: 'cars/sedan', length: 4.0, width: 2.2 },
       { type: 'carro', model: 'cars/sedan-sports', length: 4.0, width: 2.2 },

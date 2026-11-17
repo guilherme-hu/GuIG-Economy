@@ -31,7 +31,7 @@ test('trânsito: enche o entorno do jogador, flui sem travar e só os furões cr
     traffic.step(DT, focus);
     const on = traffic.vehicles.filter((v) => v.active);
     for (const v of on) longestStuck = Math.max(longestStuck, v.stuck);
-    for (let a = 0; a < on.length; a++) for (let b = a + 1; b < on.length; b++) if (Math.hypot(on[a].x - on[b].x, on[a].z - on[b].z) < 1.6) overlaps++;
+    for (let a = 0; a < on.length; a++) for (let b = a + 1; b < on.length; b++) if (Math.hypot(on[a].x - on[b].x, on[a].z - on[b].z) < (on[a].width + on[b].width) / 2 * 0.7) overlaps++;
     traffic.vehicles.forEach((v, k) => {
       const was = before[k];
       if (!was || !v.active || was.edge !== v.edge) return;
