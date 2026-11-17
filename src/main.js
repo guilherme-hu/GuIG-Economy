@@ -15,6 +15,7 @@ import { createCityView } from './render/cityView.js';
 import { createAerialCamera, createChaseCamera } from './render/camera.js';
 import { createBikeView } from './render/bikeView.js';
 import { createBike } from './sim/bike.js';
+import { createAutopilot } from './sim/autopilot.js';
 import { createEconomy } from './sim/economy.js';
 import { createHud } from './ui/hud.js';
 import { createScreens } from './ui/screens.js';
@@ -34,7 +35,8 @@ const homeDir = city.edges[home.edge].dir;
 const spawn = { ...graph.pointOnEdge(home.edge, home.t, home.side * config.city.street.laneWidth * 0.5), heading: Math.atan2(homeDir.z, homeDir.x) };
 const bike = createBike(config.bike, { city, graph }, spawn);
 const economy = createEconomy(config.economy, events);
-const sim = { time: 0, phase: 'menu', city, graph, bike, economy };
+const pilot = createAutopilot({ city, graph, bike, config: config.autopilot });
+const sim = { time: 0, phase: 'menu', city, graph, bike, pilot, economy };
 
 const stage = createScene(canvas);
 const cityView = createCityView({ city, config: config.city, scene: stage.scene, assets: createAssets() });
@@ -89,7 +91,7 @@ const loop = createLoop({
   step(dt) {
     sim.time += dt;
     if (sim.phase !== 'turno') return;
-    bike.step(input.state, dt);
+    bike.step(pilot.active ? pilot.step(dt) : input.state, dt);
     economy.tick(dt);
     if (bike.wallHit) events.emit('bump', { kind: 'parede', speed: bike.wallHit });
   },
@@ -124,10 +126,20 @@ window.__game = {
     time: sim.time,
     phase: sim.phase,
     bike: { x: bike.x, z: bike.z, heading: bike.heading, kmh: bike.speed * 3.6, road: bike.road?.edge },
+    autopilot: { active: pilot.active, arrived: pilot.arrived },
     money: economy.money,
     rating: economy.rating,
     city: { nodes: city.nodes.length, edges: city.edges.length, pois: city.pois.length, lots: city.lots.length },
     view: { buildingsLoaded: cityView.loaded, drawCalls: stage.renderer.info.render.calls, triangles: stage.renderer.info.render.triangles },
   }),
   setTimeScale: (n) => (loop.timeScale = n),
+  /** Piloto automático até o POI `poiId`. Devolve false se não há rota. */
+  goTo: (poiId) => pilot.goTo({ edge: city.pois[poiId].edge, t: city.pois[poiId].t }),
+  /** Liga ou desliga o piloto automático. Enquanto não há entregas (M3), ligado ele vai ao restaurante mais distante. */
+  autopilot(on) {
+    if (!on) return pilot.stop();
+    const far = (poi) => Math.hypot(poi.x - bike.x, poi.z - bike.z);
+    const target = city.pois.filter((poi) => poi.type === 'restaurante').sort((p, q) => far(q) - far(p))[0];
+    return pilot.goTo({ edge: target.edge, t: target.t });
+  },
 };

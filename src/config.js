@@ -85,6 +85,29 @@ export const config = {
     wallDeflect: 0.12, // rad: desvio do guidão ao raspar na parede
   },
 
+  autopilot: {
+    cruise: 0.9, // fração do limite da via
+    lookAhead: 5, // m à frente que ele mira, parado
+    lookAheadPerSpeed: 0.55, // + isso × velocidade
+    steerGain: 2.4,
+    cornerSlowdown: 0.8, // quanto ele reduz ao mirar muito de lado
+    cornerAngle: 0.55, // rad de erro de direção em que a redução é total
+    brake: 6, // m/s²: desaceleração com que ele planeja curvas e a chegada
+    arrive: 2.5, // m: distância do destino em que ele se dá por chegado
+    crawl: 2, // m/s: nunca planeja andar mais devagar que isso
+    horizon: 140, // m de rota à frente que ele examina
+    cornerWindow: 5, // m antes e depois de um ponto usados para medir a curva
+    cornerGrip: 4, // m/s²: aceleração lateral que ele aceita numa curva
+    turnAroundStart: 2.3, // rad: erro de direção a partir do qual ele faz o retorno
+    turnAroundDone: 1.2,
+    trackWindow: 4, // trechos da rota à frente considerados ao localizar a moto nela
+    trackBias: 1.5, // m: vantagem do trecho mais adiantado nessa escolha
+    aimStep: 0.5, // m: passo da busca do ponto de mira
+    stallSpeed: 0.3, // m/s: abaixo disso, acelerando, ele se considera encalhado
+    stallTime: 0.6, // s encalhado até reagir
+    backUpTime: 0.9, // s de ré para desencalhar
+  },
+
   signals: {
     green: 9,
     yellow: 2.2,
