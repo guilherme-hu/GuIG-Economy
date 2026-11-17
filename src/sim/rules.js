@@ -1,19 +1,65 @@
-/** As regras que custam caro: batida em veículo, sinal vermelho e contramão. Fala com o resto só por eventos. */
-export function createRules({ city, signals, traffic, bike, economy, events, config: cfg }) {
+/**
+ * As regras que custam caro: batida (em veículo ou parede), radar de sinal vermelho, contramão e calçada.
+ * Só alguns cruzamentos têm radar: nos outros dá para furar o sinal sem multa — o risco é só a batida.
+ * Fala com o resto por eventos; `sidewalkLeft` e `cameraAhead()` alimentam os avisos do HUD.
+ */
+export function createRules({ city, signals, traffic, bike, economy, events, rng, config: cfg }) {
   const { edges, nodes } = city;
+  const cameras = new Set(nodes.filter((node) => node.signal && rng.chance(cfg.cameraShare)).map((node) => node.id));
   let insideNode = -1; // cruzamento em que a moto está
   let approach = -1; // via pela qual ela vinha antes de entrar nele
   let wrongWay = 0; // segundos seguidos na contramão
   let finedEdge = -1; // via de mão única já multada (uma multa por via)
+  let repairCooldown = 0;
+  let sidewalkTime = 0;
+  let sidewalkCooldown = 0;
 
-  function step(dt) {
-    if (bike.frozen || !bike.road) return;
-    checkCollisions();
-    checkRedLight();
-    checkWrongWay(dt);
+  const rules = {
+    cameras,
+    /** Segundos até a multa de calçada, ou `null` se a moto não está na calçada. */
+    sidewalkLeft: null,
+
+    step(dt) {
+      if (bike.frozen || !bike.road) return;
+      repairCooldown -= dt;
+      if (bike.wallHit) impact(bike.wallHit, 'parede');
+      checkVehicles();
+      checkRedLight();
+      checkWrongWay(dt);
+      checkSidewalk(dt);
+    },
+
+    /** Radar mais próximo à frente da moto: `{ distance }` ou `null`. */
+    cameraAhead() {
+      let best = null;
+      const fx = Math.cos(bike.heading);
+      const fz = Math.sin(bike.heading);
+      for (const id of cameras) {
+        const dx = nodes[id].x - bike.x;
+        const dz = nodes[id].z - bike.z;
+        const distance = Math.hypot(dx, dz);
+        if (distance > cfg.cameraWarnDistance || distance < nodes[id].radius) continue;
+        if ((dx * fx + dz * fz) / distance < cfg.cameraWarnCone) continue;
+        if (!best || distance < best.distance) best = { distance };
+      }
+      return best;
+    },
+  };
+
+  /** Três faixas: tranco (devagar), conserto (médio) e acidente (rápido). */
+  function impact(speed, kind, vehicleId) {
+    if (speed > cfg.crashSpeed) {
+      bike.frozen = true;
+      return events.emit('crash', { kind, vehicleId, relSpeed: speed });
+    }
+    events.emit('bump', { kind, speed });
+    if (speed < cfg.damageSpeed || repairCooldown > 0) return;
+    repairCooldown = cfg.repairCooldown;
+    economy.chargeFine(cfg.repairCost, 'conserto');
+    events.emit('damage', { kind, amount: cfg.repairCost });
   }
 
-  function checkCollisions() {
+  function checkVehicles() {
     for (const v of traffic.vehicles) {
       if (!v.active) continue;
       // Posição da moto no referencial do veículo: `along` no comprimento, `across` na largura.
@@ -26,17 +72,14 @@ export function createRules({ city, signals, traffic, bike, economy, events, con
       if (Math.abs(along) > v.length / 2 + bike.radius || Math.abs(across) > v.width / 2 + bike.radius) continue;
 
       const relSpeed = Math.hypot(Math.cos(bike.heading) * bike.speed - fx * v.speed, Math.sin(bike.heading) * bike.speed - fz * v.speed);
-      if (relSpeed > cfg.crashSpeed) {
-        bike.frozen = true;
-        return events.emit('crash', { vehicleId: v.id, relSpeed });
-      }
-      // Toque leve: a moto é empurrada para fora da lataria e perde o embalo.
+      impact(relSpeed, 'veiculo', v.id);
+      if (bike.frozen) return;
+      // A moto é empurrada para fora da lataria e perde o embalo.
       const push = v.width / 2 + bike.radius - Math.abs(across);
       const side = Math.sign(across) || 1;
       bike.x += -fz * side * push;
       bike.z += fx * side * push;
       bike.speed *= cfg.bumpKeep;
-      events.emit('bump', { kind: 'veiculo', speed: relSpeed });
     }
   }
 
@@ -47,7 +90,7 @@ export function createRules({ city, signals, traffic, bike, economy, events, con
       if (Math.hypot(bike.x - nodes[id].x, bike.z - nodes[id].z) < nodes[id].radius) now = id;
     }
     if (now < 0) approach = bike.road.edge;
-    else if (now !== insideNode && Math.abs(bike.speed) > cfg.fineMinSpeed && signals.stateFor(now, approach) === 'vermelho') {
+    else if (now !== insideNode && cameras.has(now) && Math.abs(bike.speed) > cfg.fineMinSpeed && signals.stateFor(now, approach) === 'vermelho') {
       fine('sinal', cfg.fineRedLight);
     }
     insideNode = now;
@@ -62,10 +105,27 @@ export function createRules({ city, signals, traffic, bike, economy, events, con
     fine('contramao', cfg.fineWrongWay);
   }
 
+  /** Na calçada corre um contador; zerou, multa, e o contador recomeça depois de um intervalo. */
+  function checkSidewalk(dt) {
+    sidewalkCooldown -= dt;
+    if (!bike.onSidewalk) {
+      sidewalkTime = 0;
+      rules.sidewalkLeft = null;
+      return;
+    }
+    if (sidewalkCooldown > 0) return (rules.sidewalkLeft = null);
+    sidewalkTime += dt;
+    rules.sidewalkLeft = Math.max(0, cfg.sidewalkGrace - sidewalkTime);
+    if (sidewalkTime < cfg.sidewalkGrace) return;
+    sidewalkTime = 0;
+    sidewalkCooldown = cfg.sidewalkCooldown;
+    fine('calcada', cfg.fineSidewalk);
+  }
+
   function fine(kind, amount) {
     economy.chargeFine(amount, kind);
     events.emit('fine', { kind, amount });
   }
 
-  return { step };
+  return rules;
 }

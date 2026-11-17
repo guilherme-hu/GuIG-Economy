@@ -5,6 +5,7 @@ const LOOK = {
   carYaw: Math.PI / 2, // os carros da Kenney têm a frente em +Z
   pole: { height: 5.2, radius: 0.09, color: 0x2a2d38, offset: 0.9 },
   lamp: { width: 0.42, height: 1.15 },
+  camera: { size: 0.7, lift: 1.1, color: 0xff8a1f }, // caixa do radar, acima da lâmpada
   colors: { verde: 0x3dff7a, amarelo: 0xffc93d, vermelho: 0xff3b30 },
 };
 
@@ -50,7 +51,7 @@ export function createTrafficView({ scene, assets, traffic, fleet }) {
   };
 }
 
-export function createSignalsView({ scene, city, signals }) {
+export function createSignalsView({ scene, city, signals, cameras }) {
   const heads = signals.heads;
   const poles = new THREE.InstancedMesh(
     new THREE.CylinderGeometry(LOOK.pole.radius, LOOK.pole.radius, LOOK.pole.height, 6).translate(0, LOOK.pole.height / 2, 0),
@@ -77,7 +78,18 @@ export function createSignalsView({ scene, city, signals }) {
     poles.setMatrixAt(i, matrix);
     lamps.setMatrixAt(i, matrix);
   });
-  scene.add(poles, lamps);
+  // Radar: uma caixa laranja no alto dos postes dos cruzamentos fiscalizados.
+  const watched = heads.map((head, i) => i).filter((i) => cameras.has(heads[i].nodeId));
+  const boxes = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(LOOK.camera.size, LOOK.camera.size * 0.6, LOOK.camera.size).translate(0, LOOK.pole.height + LOOK.camera.lift, 0),
+    new THREE.MeshBasicMaterial({ color: LOOK.camera.color }),
+    watched.length,
+  );
+  watched.forEach((head, k) => {
+    lamps.getMatrixAt(head, matrix);
+    boxes.setMatrixAt(k, matrix);
+  });
+  scene.add(poles, lamps, boxes);
 
   return {
     update() {

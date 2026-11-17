@@ -18,8 +18,8 @@ export const config = {
     signalShareStreets: 0.4, // cruzamentos rua×rua com grau ≥ 3
     restaurants: 14,
     customers: 40,
-    street: { lanes: 1, laneWidth: 3.4, speedLimit: kmh(50) },
-    avenue: { lanes: 2, laneWidth: 3.3, speedLimit: kmh(70) },
+    street: { lanes: 1, laneWidth: 3.4, speedLimit: kmh(70) },
+    avenue: { lanes: 2, laneWidth: 3.3, speedLimit: kmh(100) },
     sidewalk: 3.2,
 
     // Posições em fração de `size` (−0,5 a +0,5), com (0, 0) no meio do mapa.
@@ -65,16 +65,16 @@ export const config = {
   },
 
   bike: {
-    maxSpeed: kmh(95),
+    maxSpeed: kmh(130),
     reverseSpeed: kmh(8),
-    accel: 7.5, // ~0–60 km/h em 3 s
+    accel: 11, // ~0–60 km/h em 2 s
     brake: 11,
     hardBrake: 19,
     drag: 0.35,
     steerRate: 2.4, // rad/s em baixa velocidade
     steerFullSpeed: 2, // abaixo disso a moto gira menos (parada não gira)
     steerResponse: 7, // quão rápido o guidão segue a tecla
-    maxLateralAccel: 13, // limita a curva em alta velocidade (m/s²)
+    maxLateralAccel: 16, // limita a curva em alta velocidade (m/s²)
     maxLean: 0.6,
     leanResponse: 3.5,
     radius: 0.55,
@@ -124,13 +124,16 @@ export const config = {
     spawnTries: 3, // sorteios de via por passo
     spawnClearance: 15, // m livres em volta do ponto de nascimento
     despawn: 320,
-    speedVariance: 0.3, // ±30% do limite da via
+    speedVariance: 0.35, // ±35% do limite da via: uns voam, outros empacam
     runRedShare: 0.1, // fração que fura o amarelo
     followGap: 3, // m de folga para o veículo da frente
     lookAhead: 40,
-    accel: 3,
-    brake: 4, // desaceleração com que planejam a parada
-    hardBrake: 9,
+    crawlSpeed: 3, // m/s: abaixo disso conta como parado na linha
+    spawnSpan: 0.6, // nasce nos primeiros 60% da via
+    junctionSpeed: kmh(45), // velocidade com que atravessam cruzamentos
+    accel: 5,
+    brake: 6, // desaceleração com que planejam a parada
+    hardBrake: 12,
     smoothing: 8, // quão rápido a posição desenhada segue a faixa (suaviza as curvas)
     stuckTime: 10,
     stuckMinDistance: 40,
@@ -148,14 +151,20 @@ export const config = {
   },
 
   rules: {
-    crashSpeed: kmh(20), // velocidade relativa acima disso = fim de jogo
+    crashSpeed: kmh(40), // impacto acima disso = acidente, fim de jogo
+    damageSpeed: kmh(20), // entre isso e o acidente: a moto quebra e o conserto sai do seu bolso
+    repairCost: 35,
+    repairCooldown: 2, // s: raspar na parede não cobra um conserto por passo
+    cameraShare: 0.3, // fração dos cruzamentos com semáforo que têm radar
+    cameraWarnDistance: 180, // m: o GPS avisa do radar a partir daqui
+    cameraWarnCone: 0.8, // cosseno do ângulo à frente em que o radar conta
     fineRedLight: 60,
     fineWrongWay: 30,
     fineMinSpeed: 2, // m/s: abaixo disso não conta como furar sinal nem contramão
     wrongWayGrace: 1.5,
     bumpKeep: 0.4, // fração da velocidade que sobra num toque leve em veículo
     fineSidewalk: 45,
-    sidewalkGrace: 1.2, // segundos na calçada antes da multa
+    sidewalkGrace: 3, // segundos na calçada antes da multa (contador na tela)
     sidewalkCooldown: 8, // intervalo mínimo entre multas de calçada
   },
 

@@ -29,7 +29,9 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
     let free = gapAhead(v, focus) - cfg.followGap;
     if (v.s < stopAt + 1 && mustWait(v, endNode, stopAt)) free = Math.min(free, stopAt - v.s);
 
-    const target = Math.min(edge.speedLimit * v.pace, Math.sqrt(2 * cfg.brake * Math.max(0, free)));
+    // Chega no cruzamento em velocidade de curva: sem isso entraria a 100 km/h numa rua curta com sinal fechado.
+    const cruise = Math.min(edge.speedLimit * v.pace, Math.sqrt(cfg.junctionSpeed ** 2 + 2 * cfg.brake * Math.max(0, stopAt - v.s)));
+    const target = Math.min(cruise, Math.sqrt(2 * cfg.brake * Math.max(0, free)));
     v.braking = target < v.speed - 0.5;
     v.speed = target < v.speed ? Math.max(target, v.speed - cfg.hardBrake * dt) : Math.min(target, v.speed + cfg.accel * dt);
     v.s += v.speed * dt;
@@ -42,7 +44,8 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   function mustWait(v, nodeId, stopAt) {
     const light = signals.stateFor(nodeId, v.edge);
     if (light === 'vermelho') return true;
-    if (light === 'amarelo') return !v.runsRed && (v.speed * v.speed) / (2 * cfg.hardBrake) < stopAt - v.s;
+    // No amarelo para quem consegue parar; quem está quase parado na linha não arranca. Os 'furões' passam.
+    if (light === 'amarelo') return !v.runsRed && (v.speed < cfg.crawlSpeed || (v.speed * v.speed) / (2 * cfg.hardBrake) < stopAt - v.s);
     if (light === 'verde') return false;
     const node = nodes[nodeId];
     return vehicles.some((w) => w.active && w.edge !== v.edge && Math.hypot(w.x - node.x, w.z - node.z) < node.radius);
@@ -111,7 +114,7 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
         active: true, edge: edge.id, forward: edge.oneWay || rng.chance(0.5), lane: rng.int(0, edge.lanes - 1),
         pace: 1 + rng.range(-cfg.speedVariance, cfg.speedVariance), runsRed: rng.chance(cfg.runRedShare), stuck: 0,
       });
-      v.s = (v.forward ? t : 1 - t) * edge.length;
+      v.s = (v.forward ? t : 1 - t) * edge.length * cfg.spawnSpan; // nunca nasce em cima de um cruzamento
       v.speed = 0; // nasce parado: longe da vista, e nunca em cima de um sinal vermelho sem espaço para frear
       place(v, 1);
       return;
