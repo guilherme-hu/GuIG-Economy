@@ -107,7 +107,7 @@ createSignals(city, config.signals) → { step(dt), stateFor(nodeId, edgeId) →
 
 // sim/traffic.js
 createTraffic({ city, graph, signals, rng, config: config.traffic }) → {
-  vehicles: [{ id, active, type: 'carro'|'moto'|'onibus'|'caminhao', model, x, z, heading, speed, length, width, braking }],  // pool fixo
+  vehicles: [{ id, active, type: 'carro'|'moto'|'onibus'|'caminhao', model, x, z, heading, speed, length, width, reckless }],  // pool fixo; reckless = moto de outro entregador
   step(dt, focus /* a moto: {x,z,heading,speed} */),
 }
 

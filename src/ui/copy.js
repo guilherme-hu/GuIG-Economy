@@ -127,6 +127,11 @@ export const copy = {
   },
 
   /** Notificações prontas: main.js passa o resultado para phone.notify(). */
+  warning: {
+    radar: { title: 'Radar à frente', hint: 'Sinal vermelho aqui dá multa' },
+    calcada: { title: 'Na calçada!', hint: 'Infração de trânsito: multa em' },
+  },
+
   notify: {
     fineRedLight: (amount) => ({
       kind: 'multa',
@@ -137,6 +142,16 @@ export const copy = {
       kind: 'multa',
       title: `Multa: ${money(amount)}`,
       text: 'Contramão. O valor já saiu do seu saldo.',
+    }),
+    fineSidewalk: (amount) => ({
+      kind: 'multa',
+      title: `Multa: ${money(amount)}`,
+      text: 'Trânsito na calçada. O valor já saiu do seu saldo.',
+    }),
+    repair: (amount) => ({
+      kind: 'multa',
+      title: `Conserto: ${money(amount)}`,
+      text: 'Você danificou a moto. O conserto é por sua conta.',
     }),
     tip: (amount) => ({
       kind: 'gorjeta',

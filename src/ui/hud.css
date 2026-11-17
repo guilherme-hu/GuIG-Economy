@@ -1,3 +1,93 @@
+/* Aviso de trânsito: canto esquerdo, fora do centro da visão. Entra deslizando; pulsa quando está acabando. */
+.warning {
+  position: absolute;
+  left: 20px;
+  top: 30%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 300px;
+  padding: 14px 20px 14px 14px;
+  border-radius: 18px;
+  color: #fff;
+  background: rgba(16, 17, 24, 0.82);
+  backdrop-filter: blur(8px);
+  border: 2px solid var(--accent, #ffc72c);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  transform: translateX(calc(-100% - 40px));
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.2s;
+}
+.warning.is-visible {
+  transform: none;
+  opacity: 1;
+}
+.warning[data-kind='calcada'] {
+  --accent: #ff4d3d;
+}
+.warning.is-urgent {
+  animation: warning-pulse 0.5s ease-in-out infinite alternate;
+}
+@keyframes warning-pulse {
+  to {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent, #ffc72c) 45%, transparent), 0 10px 30px rgba(0, 0, 0, 0.4);
+    transform: scale(1.04);
+  }
+}
+.warning__sign {
+  flex: none;
+  width: 76px;
+  height: 76px;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+}
+.warning__sign svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.warning__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.warning__body p {
+  margin: 0;
+}
+.warning__title {
+  font-size: 20px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent, #ffc72c);
+}
+.warning__hint {
+  order: 2;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+}
+.warning__value {
+  order: 3;
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.warning__bar {
+  order: 4;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+.warning__bar i {
+  display: block;
+  height: 100%;
+  width: calc(var(--fill, 1) * 100%);
+  background: var(--accent, #ffc72c);
+  transition: width 0.1s linear;
+}
+
 /* HUD de pilotagem. Sempre sobre placas escuras translúcidas: lê no entardecer claro e na noite. */
 .hud {
   position: absolute;

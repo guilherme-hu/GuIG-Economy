@@ -18,8 +18,8 @@ export const config = {
     signalShareStreets: 0.4, // cruzamentos rua×rua com grau ≥ 3
     restaurants: 14,
     customers: 40,
-    street: { lanes: 1, laneWidth: 3.4, speedLimit: kmh(50) },
-    avenue: { lanes: 2, laneWidth: 3.3, speedLimit: kmh(70) },
+    street: { lanes: 1, laneWidth: 4.4, speedLimit: kmh(70) }, // largas o bastante para uma moto passar entre os carros
+    avenue: { lanes: 2, laneWidth: 4.2, speedLimit: kmh(100) },
     sidewalk: 3.2,
 
     // Posições em fração de `size` (−0,5 a +0,5), com (0, 0) no meio do mapa.
@@ -65,16 +65,16 @@ export const config = {
   },
 
   bike: {
-    maxSpeed: kmh(95),
+    maxSpeed: kmh(130),
     reverseSpeed: kmh(8),
-    accel: 7.5, // ~0–60 km/h em 3 s
+    accel: 11, // ~0–60 km/h em 2 s
     brake: 11,
     hardBrake: 19,
     drag: 0.35,
     steerRate: 2.4, // rad/s em baixa velocidade
     steerFullSpeed: 2, // abaixo disso a moto gira menos (parada não gira)
     steerResponse: 7, // quão rápido o guidão segue a tecla
-    maxLateralAccel: 13, // limita a curva em alta velocidade (m/s²)
+    maxLateralAccel: 16, // limita a curva em alta velocidade (m/s²)
     maxLean: 0.6,
     leanResponse: 3.5,
     radius: 0.55,
@@ -118,23 +118,63 @@ export const config = {
   },
 
   traffic: {
-    poolSize: 50,
-    spawnMin: 120,
-    spawnMax: 260,
+    poolSize: 110,
+    spawnMin: 90,
+    spawnMax: 240,
+    spawnTries: 8, // sorteios de via por passo
+    spawnClearance: 10, // m livres em volta do ponto de nascimento
     despawn: 320,
-    speedVariance: 0.3, // ±30% do limite da via
-    runRedShare: 0.1,
-    laneChangeShare: 0.15,
-    followGap: 5,
-    mix: { carro: 0.62, moto: 0.2, onibus: 0.08, caminhao: 0.1 },
+    speedVariance: 0.35, // ±35% do limite da via: uns voam, outros empacam
+    runRedShare: 0.1, // fração que fura o amarelo
+    followGap: 3, // m de folga para o veículo da frente
+    lookAhead: 40,
+    crawlSpeed: 3, // m/s: abaixo disso conta como parado na linha
+    spawnSpan: 0.6, // nasce nos primeiros 60% da via
+    junctionSpeed: kmh(45), // velocidade com que atravessam cruzamentos
+    rerouteAfter: 3, // s esperando a saída liberar antes de escolher outra rua
+    junctionHold: 6, // s em que uma faixa pode mandar carros seguidos num cruzamento
+    accel: 5,
+    brake: 6, // desaceleração com que planejam a parada
+    hardBrake: 12,
+    smoothing: 8, // quão rápido a posição desenhada segue a faixa (suaviza as curvas)
+    stuckTime: 10,
+    stuckMinDistance: 250, // só some longe, fora da vista (além de onde os carros nascem)
+    // Outros entregadores: andam acima do limite, costuram no corredor e furam sinal.
+    motoShare: 0.22, // fração do trânsito que é moto
+    moto: { type: 'moto', model: 'moto', length: 2, width: 0.8, reckless: true },
+    motoPace: [1.15, 1.55], // múltiplo do limite da via
+    motoRunRed: 0.6, // fração das motos que fura o vermelho
+    motoLine: 0.3, // m à direita da faixa pintada: é por ali que elas costuram
+    corridorFit: 0.9, // fração da largura somada que conta como "no caminho" (deixa a moto passar raspando)
+    fleet: [
+      { type: 'carro', model: 'cars/sedan', length: 4.0, width: 2.2 },
+      { type: 'carro', model: 'cars/sedan-sports', length: 4.0, width: 2.2 },
+      { type: 'carro', model: 'cars/hatchback-sports', length: 3.9, width: 2.2 },
+      { type: 'carro', model: 'cars/suv', length: 4.2, width: 2.3 },
+      { type: 'carro', model: 'cars/suv-luxury', length: 4.3, width: 2.3 },
+      { type: 'carro', model: 'cars/taxi', length: 4.2, width: 2.3 },
+      { type: 'carro', model: 'cars/van', length: 4.5, width: 2.4 },
+      { type: 'caminhao', model: 'cars/truck', length: 5.0, width: 2.4 },
+      { type: 'caminhao', model: 'cars/delivery', length: 5.8, width: 2.5 },
+    ],
   },
 
   rules: {
-    crashSpeed: kmh(20), // velocidade relativa acima disso = fim de jogo
+    crashSpeed: kmh(40), // impacto acima disso = acidente, fim de jogo
+    damageSpeed: kmh(20), // entre isso e o acidente: a moto quebra e o conserto sai do seu bolso
+    repairCost: 35,
+    crashScreenDelay: 2.4, // s de efeito do acidente antes da tela de fim
+    repairCooldown: 2, // s: raspar na parede não cobra um conserto por passo
+    cameraShare: 0.3, // fração dos cruzamentos com semáforo que têm radar
+    cameraWarnDistance: 180, // m: o GPS avisa do radar a partir daqui
+    cameraWarnCone: 0.8, // cosseno do ângulo à frente em que o radar conta
     fineRedLight: 60,
     fineWrongWay: 30,
+    fineMinSpeed: 2, // m/s: abaixo disso não conta como furar sinal nem contramão
+    wrongWayGrace: 1.5,
+    bumpKeep: 0.4, // fração da velocidade que sobra num toque leve em veículo
     fineSidewalk: 45,
-    sidewalkGrace: 1.2, // segundos na calçada antes da multa
+    sidewalkGrace: 3, // segundos na calçada antes da multa (contador na tela)
     sidewalkCooldown: 8, // intervalo mínimo entre multas de calçada
   },
 
@@ -148,7 +188,7 @@ export const config = {
     surgeBadge: 1.3,
     pickupStopTime: 1.5,
     stopSpeed: kmh(5),
-    stopRadius: 7,
+    stopRadius: 9, // cobre o marcador do outro lado de uma avenida larga
     deadlineBuffer: 20,
     refSpeedShort: kmh(35), // corridas curtas: prazo folgado
     refSpeedLong: kmh(55), // corridas longas: prazo apertado

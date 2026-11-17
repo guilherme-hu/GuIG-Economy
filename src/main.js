@@ -18,11 +18,17 @@ import { createBike } from './sim/bike.js';
 import { createAutopilot } from './sim/autopilot.js';
 import { createEconomy } from './sim/economy.js';
 import { createJobs } from './sim/jobs.js';
+import { createSignals } from './sim/signals.js';
+import { createTraffic } from './sim/traffic.js';
+import { createRules } from './sim/rules.js';
+import { createTrafficView, createSignalsView } from './render/trafficView.js';
 import { nextManeuver } from './sim/navigation.js';
 import { createMarkersView } from './render/markersView.js';
 import { createPhone } from './ui/phone/phone.js';
 import { copy } from './ui/copy.js';
 import { createHud } from './ui/hud.js';
+import { createWarning } from './ui/warning.js';
+import { createTutorial } from './ui/tutorial.js';
 import { createScreens } from './ui/screens.js';
 
 const canvas = document.getElementById('jogo');
@@ -41,8 +47,11 @@ const spawn = { ...graph.pointOnEdge(home.edge, home.t, home.side * config.city.
 const bike = createBike(config.bike, { city, graph }, spawn);
 const economy = createEconomy(config.economy, events);
 const jobs = createJobs({ city, graph, rng: rng.fork('ofertas'), events, economy, config: config.jobs });
+const signals = createSignals(city, config.signals);
+const traffic = createTraffic({ city, graph, signals, rng: rng.fork('trânsito'), config: config.traffic });
+const rules = createRules({ city, signals, traffic, bike, economy, events, rng: rng.fork('radares'), config: config.rules });
 const pilot = createAutopilot({ city, graph, bike, config: config.autopilot });
-const sim = { time: 0, phase: 'menu', city, graph, bike, pilot, economy, jobs, nav: null, autopilot: false };
+const sim = { time: 0, phase: 'menu', city, graph, bike, pilot, economy, jobs, signals, traffic, rules, nav: null, autopilot: false };
 
 /** Com o piloto ligado, ele vai sozinho ao destino da corrida ativa (restaurante, depois cliente). */
 let pilotTarget = null;
@@ -57,7 +66,10 @@ function pilotInput(dt) {
 }
 
 const stage = createScene(canvas);
-const cityView = createCityView({ city, config: config.city, scene: stage.scene, assets: createAssets() });
+const assets = createAssets();
+const cityView = createCityView({ city, config: config.city, scene: stage.scene, assets });
+const trafficView = createTrafficView({ scene: stage.scene, assets, traffic, fleet: config.traffic.fleet });
+const signalsView = createSignalsView({ scene: stage.scene, city, signals, cameras: rules.cameras });
 const aerial = createAerialCamera({
   size: city.size,
   focus: { x: config.city.centro.x * city.size, z: config.city.centro.z * city.size },
@@ -71,6 +83,8 @@ stage.onResize(chase.resize);
 
 const ui = document.getElementById('ui');
 const hud = createHud(ui);
+const warning = createWarning(ui);
+const tutorial = createTutorial(ui);
 const markers = createMarkersView({ scene: stage.scene });
 const phone = createPhone(ui, { onAccept: (id) => jobs.accept(id, bike), onDecline: (id) => jobs.decline(id) });
 events.on('job:pickup', ({ job }) => phone.notify(copy.notify.pickup(job.offer.customer.name)));
@@ -81,19 +95,38 @@ events.on('job:delivered', ({ pay, tip, lateBy }) => {
 });
 events.on('job:cancelled', () => phone.notify(copy.notify.cancelled()));
 events.on('offer:expired', () => phone.notify(copy.notify.offerExpired()));
-events.on('fine', ({ kind, amount }) => {
-  const notice = copy.notify.fineWrongWay(amount);
-  phone.notify(kind === 'calcada' ? { ...notice, text: 'Trânsito na calçada. O valor já saiu do seu saldo.' } : notice);
+const fineNotice = { sinal: copy.notify.fineRedLight, contramao: copy.notify.fineWrongWay, calcada: copy.notify.fineSidewalk };
+events.on('fine', ({ kind, amount }) => phone.notify(fineNotice[kind](amount)));
+events.on('crash', ({ relSpeed }) => {
+  sim.phase = 'acidente'; // a simulação para; o efeito roda e só depois vem a tela
+  bikeView.crash(relSpeed);
+  warning.show(null);
+  phone.close();
+  hud.flash('batida');
+  setTimeout(showAccident, config.rules.crashScreenDelay * 1000);
 });
-const screens = createScreens(ui, { onStart: startShift, onResume: resume, onNextDay: startShift, onRestart: () => location.reload() });
+function showAccident() {
+  sim.phase = 'fim';
+  hud.setVisible(false);
+  const { perHour } = economy.statement();
+  const stats = { days: economy.career.days + 1, deliveries: economy.career.deliveries + economy.day.deliveries, earned: economy.money, perHour };
+  screens.show('fim', { reason: 'acidente', stats });
+}
+const screens = createScreens(ui, { onStart: firstShift, onResume: resume, onNextDay: startShift, onRestart: () => location.reload() });
 hud.setVisible(false);
 if (!debugMap) screens.show('menu');
 
+/** Primeiro turno: passa pelas instruções (a não ser que o jogador já as tenha dispensado). */
+function firstShift() {
+  screens.hide();
+  tutorial.show(startShift);
+}
 function startShift() {
   sim.phase = 'turno';
   economy.startDay();
   screens.hide();
   hud.setVisible(true);
+  phone.open();
 }
 function resume() {
   screens.hide();
@@ -109,16 +142,16 @@ input.onAction((action) => {
 });
 events.on('bump', () => hud.flash('batida'));
 events.on('fine', () => hud.flash('radar'));
+events.on('damage', ({ amount }) => phone.notify(copy.notify.repair(amount)));
 
-// Fiscalização: insistir na calçada rende multa, com intervalo entre uma e outra.
-const sidewalk = { time: 0, cooldown: 0 };
-function patrolSidewalk(dt) {
-  sidewalk.cooldown -= dt;
-  sidewalk.time = bike.onSidewalk && Math.abs(bike.speed) > 1 ? sidewalk.time + dt : 0;
-  if (sidewalk.time < config.rules.sidewalkGrace || sidewalk.cooldown > 0) return;
-  sidewalk.cooldown = config.rules.sidewalkCooldown;
-  economy.chargeFine(config.rules.fineSidewalk, 'calcada');
-  events.emit('fine', { kind: 'calcada', amount: config.rules.fineSidewalk });
+/** Aviso do alto da tela: contador da calçada tem prioridade sobre o radar à frente. */
+function updateWarning() {
+  if (rules.sidewalkLeft !== null) {
+    return warning.show('calcada', rules.sidewalkLeft, rules.sidewalkLeft / config.rules.sidewalkGrace);
+  }
+  const camera = rules.cameraAhead();
+  if (camera) return warning.show('radar', camera.distance, camera.distance / config.rules.cameraWarnDistance);
+  warning.show(null);
 }
 
 stage.setFog(!debugMap);
@@ -143,17 +176,21 @@ const loop = createLoop({
     economy.chargeFuel(bike.distance - before);
     economy.tick(dt);
     jobs.step(dt, bike);
-    if (bike.wallHit) events.emit('bump', { kind: 'parede', speed: bike.wallHit });
-    patrolSidewalk(dt);
+    signals.step(dt);
+    traffic.step(dt, bike);
+    rules.step(dt);
   },
   render(alpha, frameDt) {
-    const riding = sim.phase === 'turno' && !debugMap;
+    const riding = (sim.phase === 'turno' || sim.phase === 'acidente') && !debugMap;
     const view = riding ? chase : aerial;
     view.update(frameDt);
-    bikeView.update();
+    bikeView.update(frameDt);
+    trafficView.update();
+    signalsView.update();
     markers.update(jobs.active?.target, sim.time);
-    if (riding) {
+    if (sim.phase === 'turno' && !debugMap) {
       hud.update(sim);
+      updateWarning();
       phone.update(sim);
     }
     stage.render(view.camera);
@@ -194,6 +231,7 @@ window.__game = {
     offers: jobs.offers.length,
     job: jobs.active && { phase: jobs.active.phase, timeLeft: jobs.active.timeLeft, pay: jobs.active.offer.pay, remaining: jobs.active.route?.length },
     deliveries: economy.day.deliveries,
+    traffic: traffic.vehicles.filter((v) => v.active).length,
     rating: economy.rating,
     city: { nodes: city.nodes.length, edges: city.edges.length, pois: city.pois.length, lots: city.lots.length },
     view: { buildingsLoaded: cityView.loaded, drawCalls: stage.renderer.info.render.calls, triangles: stage.renderer.info.render.triangles },

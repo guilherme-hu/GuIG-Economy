@@ -30,6 +30,7 @@ export function createInput(target = window) {
   };
 
   const onDown = (e) => {
+    if (e.code === 'Enter' && e.target.closest?.('button')) return; // deixa o botão focado responder
     if (e.code in ACTIONS || e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
     if (e.repeat) return;
     down.add(e.code);

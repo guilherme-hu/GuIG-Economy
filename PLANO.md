@@ -128,7 +128,7 @@ Cada marco é uma issue no GitHub e termina com o jogo rodando, verificado confo
   *Aceite:* dá para atravessar a cidade de uma ponta à outra sem atravessar prédio; screenshot em 3ª pessoa legível.
 - [x] **M3 — Celular, ofertas e GPS.** (#4) `jobs.js` com testes, celular com 3 telas, A*, marcadores, coleta/entrega, cronômetro, seta de próxima curva, `autopilot` e `acceptOffer`.
   *Aceite:* via `__game`: aceitar oferta, ligar autopilot, e o dinheiro em `state()` aumenta sozinho após a entrega.
-- [ ] **M4 — Trânsito e semáforos.** (#5) Veículos, semáforos, colisão ⇒ game over, multa por vermelho e contramão.
+- [x] **M4 — Trânsito e semáforos.** (#5) Veículos, semáforos, colisão ⇒ game over, multa por vermelho e contramão.
   *Aceite:* screenshot com trânsito parado num vermelho; teleporte para dentro de um carro em movimento dá game over; atravessar vermelho desconta dinheiro; fps ≥ 50 com o pool cheio.
 - [ ] **M5 — Dia completo.** (#6) Turno, nota, aceitação, custos, extrato, progressão de dias, os 3 fins de jogo, menu, pausa, tutorial.
   *Aceite:* com `setTimeScale` alto + autopilot, um turno inteiro roda até o extrato e o extrato fecha; cada fim de jogo é alcançável e reiniciável.
