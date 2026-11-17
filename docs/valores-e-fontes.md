@@ -84,4 +84,30 @@ Leituras para a apresentação:
 - **A corrida longa só compensa para quem corre.** Mesmo com R$ 2,50/km, quem anda no limite perde dinheiro escolhendo só as longas, porque o prazo aperta e o tempo gasto não volta.
 - **Com o valor real do iFood (R$ 1,50/km), a corrida longa não compensava para ninguém.**
 
-Uma simulação com trânsito e jogadores-robô "cauteloso" e "apressado" é parte do marco M7.
+## 4. Simulação com trânsito, multas e batidas
+
+A simulação da seção 3 roda sem trânsito, então mostra o **teto** do que dá para ganhar. Depois ensinamos o robô a dirigir no trânsito da cidade: ele freia para o veículo à frente, cede a quem já está no cruzamento, para no sinal conforme o perfil, pode levar multa dos radares e pode bater. Cada dia roda com 110 veículos, incluindo as motos imprudentes de outros entregadores.
+
+Perfis (`config.autopilot.profiles`):
+- **cauteloso**: respeita todo sinal e a preferência, anda no limite da via, atravessa cruzamentos a 30 km/h e mantém 1 s de distância do carro da frente;
+- **apressado**: 40% acima do limite, curvas e freadas no limite, cola no carro da frente e **fura o vermelho onde não há radar**;
+- **kamikaze**: como o apressado, mas fura todo sinal e não dá preferência.
+
+Rodar: `node scripts/balance.js 3 cauteloso,apressado,kamikaze 4` (dias, perfis, sementes). Com `TRAVAS=1`, ele também mostra quando o robô fica parado mais de 60 s e por quê.
+
+Para ver o robô jogando no navegador: abra o jogo com `?bot=cauteloso` (ou `apressado`, `kamikaze`); `&vel=3` acelera o tempo. Ele aceita corridas, pilota, passa de dia sozinho e escreve no console (F12) cada acidente, multa, conserto e entrega.
+
+Resultado (até 3 dias por combinação, 4 sementes, duas estratégias de escolha de corridas):
+
+| Perfil | Entregas por dia | Líquido por dia | Como terminou |
+|---|---|---|---|
+| cauteloso | 1–6 | −R$ 5 a −R$ 51 | nunca pagou as contas; terminou desativado (atrasos), despejado ou em acidente com moto imprudente |
+| apressado | 0–5 | negativo | **acidente em todas as 8 rodadas**, entre 3 e 11 min de turno; quase sempre batendo a 40–67 km/h num veículo parado ou dobrando |
+| kamikaze | 0 | — | **acidente em todas as 8 rodadas**, entre 1 e 3,5 min; levou de 1 a 3 multas de radar antes |
+
+O que isso mostra:
+- **O trânsito é o que mais pesa.** Sem trânsito, o mesmo robô cauteloso fazia 10–11 entregas por dia; com trânsito, faz de 1 a 6.
+- **Correr mata rápido.** Os perfis que furam sinal e andam acima do limite não terminam nem o primeiro dia; o motivo do acidente quase sempre é a velocidade da própria moto.
+- **Respeitar as regras não paga as contas.** O cauteloso sobrevive mais, mas fatura pouco demais: é o dilema do entregador.
+
+**Limitação importante: esse resultado subestima um jogador humano.** O robô é um motorista ruim: não ultrapassa, não costura entre os carros nas ruas de mão dupla e às vezes fica parado em impasses com outros veículos (o detector `TRAVAS=1` mostra esses casos). Por isso esses números servem para comparar perfis e mostrar o risco, não para fechar a calibração da economia. A calibração final depende de pessoas jogando; a flag `?bot=` serve para observar o comportamento e caçar problemas enquanto isso.
