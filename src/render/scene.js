@@ -70,8 +70,8 @@ export function createScene(canvas) {
   const look = {};
   const stage = { renderer, scene, night: 0 };
 
-  /** `p` de 0 (17h, sol dourado) a 1 (quase 21h, noite). */
-  function setDaylight(p) {
+  /** `p` de 0 (17h, sol dourado) a 1 (quase 21h, noite). `fogScale` afasta a névoa (vista aérea do menu). */
+  function setDaylight(p, fogScale = 1) {
     blend(p, look);
     const lift = Math.sin(look.elevation);
     sunDir.set(Math.cos(SUN_AZIMUTH) * Math.cos(look.elevation), lift, Math.sin(SUN_AZIMUTH) * Math.cos(look.elevation));
@@ -82,8 +82,8 @@ export function createScene(canvas) {
     stage.night = smoothstep(NIGHT.from, NIGHT.to, p);
     uniforms.night.value = stage.night;
     fog.color.setHex(look.horizon);
-    fog.near = look.fogNear;
-    fog.far = look.fogFar;
+    fog.near = look.fogNear * fogScale;
+    fog.far = look.fogFar * fogScale;
     hemisphere.color.setHex(look.hemiSky);
     hemisphere.groundColor.setHex(look.hemiGround);
     hemisphere.intensity = look.hemiPower;

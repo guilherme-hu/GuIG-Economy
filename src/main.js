@@ -278,7 +278,7 @@ const loop = createLoop({
       updateWarning();
       phone.update(sim);
     }
-    stage.setDaylight(daylight());
+    stage.setDaylight(daylight(), riding ? 1 : 1.4); // do alto do menu, a névoa normal apagaria as janelas de longe
     cityView.setNight(stage.night);
     trafficView.setNight(stage.night);
     bikeView.setNight(stage.night);

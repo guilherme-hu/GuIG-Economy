@@ -33,7 +33,7 @@ export function createCityView({ city, config, scene, assets }) {
     /** 0 = dia, 1 = noite: postes e janelas acesos. */
     setNight(k) {
       lamps.setNight(k);
-      for (const material of windows) material.emissiveIntensity = k * 1.3;
+      for (const material of windows) material.emissiveIntensity = k * 2.2;
     },
   };
   return view;

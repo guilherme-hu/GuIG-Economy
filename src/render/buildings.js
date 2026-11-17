@@ -51,6 +51,9 @@ export function windowGlowTexture() {
   context.fillRect(320, 128, 64, 128);
   const texture = new THREE.CanvasTexture(canvas);
   texture.flipY = false; // como as texturas do glTF
+  // Sem mipmap: as janelas ficam na borda da faixa clara e, de longe, o mipmap as misturaria com o preto vizinho.
+  texture.generateMipmaps = false;
+  texture.minFilter = THREE.LinearFilter;
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
