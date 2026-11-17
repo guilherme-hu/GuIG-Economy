@@ -49,11 +49,11 @@ export const config = {
       setback: 1.5, // recuo entre a calçada e a fachada
       gap: [1.5, 6],
       riverMargin: 4,
-      // frente (w) e fundo (d) de cada tipo de lote
-      predio: { w: [18, 26], d: [18, 24] },
-      'arranha-ceu': { w: [24, 32], d: [24, 30] },
-      casa: { w: [12, 17], d: [12, 16] },
-      galpao: { w: [34, 56], d: [28, 40] },
+      // Frente (w) e fundo (d) de cada tipo de lote, do tamanho dos modelos 3D na escala do jogo.
+      predio: { w: [12, 20], d: [13, 17] },
+      'arranha-ceu': { w: [18, 21], d: [18, 21] },
+      casa: { w: [12, 19], d: [11, 15] },
+      galpao: { w: [20, 32], d: [14, 22] },
       praca: { w: [26, 38], d: [24, 32] },
       mix: {
         centro: { predio: 0.96, praca: 0.04 },

@@ -35,7 +35,8 @@ src/
   core/    loop.js  events.js  rng.js  input.js
   sim/     city/generator.js  city/graph.js  (+ city/geometry.js  city/lots.js  city/pois.js, internos do gerador)
            bike.js  traffic.js  signals.js  rules.js  jobs.js  economy.js  shift.js  autopilot.js
-  render/  scene.js  assets.js  cityView.js  bikeView.js  trafficView.js  markersView.js  camera.js  effects.js
+  render/  scene.js  assets.js  cityView.js (+ terrain.js  roads.js  buildings.js  batch.js, as partes dele)
+           bikeView.js  trafficView.js  markersView.js  camera.js  effects.js
   ui/      base.css  tokens.css  phone/  hud.js  screens.js  tutorial.js
   audio/   audio.js
 test/      um arquivo por módulo de sim/
@@ -145,8 +146,11 @@ Precisa mudar o contrato? Mude aqui no mesmo commit e avise no relatório final.
 
 ## Como verificar sem um humano jogando
 
-`window.__game` (sempre disponível) expõe `sim`, `config`, `events`, `loop`, e:
+`window.__game` (sempre disponível) expõe `sim`, `config`, `events`, `loop`, `view` (`stage`, `cityView`, `aerial`), e:
 `state()` (resumo JSON), `teleport(nodeId)`, `autopilot(true|false)`, `setTimeScale(n)`, `acceptOffer(i)`, `loop.advance(nPassos)`.
+
+`?debug=mapa` abre a vista aérea com arrastar e zoom; `&cam=x,z,distância,inclinação,giro` (graus) fixa a câmera para screenshots.
+`state().view.buildingsLoaded` avisa quando os modelos terminaram de carregar.
 
 Para cada marco: (1) `npm test` passa; (2) jogo abre e `read_console_messages` não tem erros;
 (3) screenshot e inspeção visual de verdade; (4) critério de aceite do PLANO.md exercitado via `javascript_tool`.
