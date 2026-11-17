@@ -90,3 +90,45 @@ test('piloto automático: largado torto contra os prédios, segue viagem', () =>
   }
   assert.ok(pilot.arrived, 'chegou mesmo saindo torto');
 });
+
+// ---- no trânsito
+
+/** Uma via longa e reta que chega num cruzamento com semáforo, e a moto 80 m antes da linha. */
+function approach() {
+  const edge = city.edges.filter((e) => e.length > 90 && !e.oneWay && city.nodes[e.b].signal).sort((a, b) => b.length - a.length)[0];
+  const node = city.nodes[edge.b];
+  const bike = createBike(config.bike, { city, graph }, { ...graph.pointOnEdge(edge.id, 0.1, edge.halfWidth / 2), heading: Math.atan2(edge.dir.z, edge.dir.x) });
+  const beyond = node.edges.map((id) => city.edges[id]).find((e) => e.id !== edge.id && graph.canTravel(e.id, node.id));
+  const target = { edge: beyond.id, t: beyond.a === node.id ? 0.5 : 0.5 };
+  const lineAt = edge.length - node.radius; // distância da linha de retenção a partir de a
+  const along = () => (bike.x - city.nodes[edge.a].x) * edge.dir.x + (bike.z - city.nodes[edge.a].z) * edge.dir.z;
+  return { edge, node, bike, target, lineAt, along };
+}
+
+test('piloto no trânsito: para antes da linha no vermelho; o perfil "nunca" fura', () => {
+  const red = { stateFor: () => 'vermelho' };
+  for (const obeyLights of ['sempre', 'nunca']) {
+    const { bike, target, lineAt, along } = approach();
+    const pilot = createAutopilot({ city, graph, bike, config: { ...config.autopilot, obeyLights }, signals: red, traffic: { vehicles: [] } });
+    pilot.goTo(target);
+    for (let i = 0; i < 60 * 25; i++) bike.step(pilot.step(DT), DT);
+    if (obeyLights === 'sempre') {
+      assert.ok(along() < lineAt, `passou da linha no vermelho (${along().toFixed(1)} > ${lineAt.toFixed(1)})`);
+      assert.ok(Math.abs(bike.speed) < 0.5, 'ficou parado esperando');
+    } else {
+      assert.ok(along() > lineAt || pilot.arrived, 'o perfil "nunca" fura o sinal');
+    }
+  }
+});
+
+test('piloto no trânsito: freia atrás de um carro parado sem encostar', () => {
+  const { edge, bike, target } = approach();
+  const at = graph.pointOnEdge(edge.id, 0.6, edge.halfWidth / 2);
+  const car = { active: true, x: at.x, z: at.z, heading: Math.atan2(edge.dir.z, edge.dir.x), speed: 0, length: 4.2, width: 2.2 };
+  const pilot = createAutopilot({ city, graph, bike, config: config.autopilot, traffic: { vehicles: [car] } });
+  pilot.goTo(target);
+  for (let i = 0; i < 60 * 20; i++) bike.step(pilot.step(DT), DT);
+  const gap = Math.hypot(car.x - bike.x, car.z - bike.z) - car.length / 2;
+  assert.ok(gap > 1, `encostou no carro (folga de ${gap.toFixed(2)} m)`);
+  assert.ok(Math.abs(bike.speed) < 0.5, 'ficou parado atrás dele');
+});

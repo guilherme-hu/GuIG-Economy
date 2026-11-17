@@ -1,8 +1,10 @@
 /**
  * Piloto automático: segue uma rota do grafo devolvendo o mesmo `inputState` que o teclado daria.
- * Serve para verificar o jogo sem um humano pilotando e, mais adiante, para o balanceamento.
+ * Serve para verificar o jogo sem um humano pilotando e para o balanceamento.
+ * Com `traffic` e `signals`, freia para o veículo à frente e para na linha de retenção quando o sinal fecha,
+ * conforme `cfg.obeyLights`: 'sempre', 'radar' (só onde há radar, em `cameras`) ou 'nunca'.
  */
-export function createAutopilot({ city, graph, bike, config: cfg }) {
+export function createAutopilot({ city, graph, bike, config: cfg, traffic = null, signals = null, cameras = null }) {
   const { edges, nodes } = city;
   const input = { throttle: 0, steer: 0, brake: false, horn: false };
   let path = []; // pontos a seguir, já deslocados para a mão direita
@@ -10,6 +12,8 @@ export function createAutopilot({ city, graph, bike, config: cfg }) {
   let progress = 0; // quanto da rota já ficou para trás, em metros
   let segment = 0;
   let cornerSpeeds = []; // velocidade segura para passar por cada ponto da rota
+  let junctions = []; // cruzamentos da rota: { at /* índice do ponto no centro dele */, nodeId, edgeId /* via de chegada */ }
+  let passing = -1; // cruzamento que ele já decidiu atravessar
   let turningAround = 0; // sentido do retorno em andamento (0 = nenhum)
   let stalled = 0; // segundos parado querendo andar
   let backingUp = 0; // segundos de ré que faltam para desencalhar
@@ -19,10 +23,13 @@ export function createAutopilot({ city, graph, bike, config: cfg }) {
     active: false,
     arrived: false,
     wanted: 0, // velocidade que ele está tentando manter, em m/s
+    limitedBy: 'via', // o que limita essa velocidade agora: 'via', 'veículo à frente' ou 'cruzamento'
     input,
 
     /** Passa a seguir a rota (o retorno de `graph.route`). */
     follow(route) {
+      junctions = [];
+      passing = -1;
       path = rightLane(route);
       lengths = [0];
       for (let i = 1; i < path.length; i++) lengths.push(lengths[i - 1] + Math.hypot(path[i].x - path[i - 1].x, path[i].z - path[i - 1].z));
@@ -71,15 +78,81 @@ export function createAutopilot({ city, graph, bike, config: cfg }) {
 
       const limit = edges[bike.road.edge].speedLimit * cfg.cruise;
       const cornering = limit * (1 - cfg.cornerSlowdown * Math.min(1, Math.abs(error) / cfg.cornerAngle));
-      const wanted = Math.max(Math.min(cornering, plannedSpeed(left)), cfg.crawl);
+      // Trânsito e sinal podem pedir parada total, então ficam fora do piso `crawl`.
+      const road = Math.max(Math.min(cornering, plannedSpeed(left)), cfg.crawl);
+      const ahead = vehicleAheadSpeed();
+      const junction = junctionSpeed();
+      const wanted = Math.min(road, ahead, junction);
       pilot.wanted = wanted;
-      input.brake = pace > wanted + 4;
+      pilot.limitedBy = wanted === road ? 'via' : wanted === ahead ? 'veículo à frente' : 'cruzamento';
+      input.brake = pace > wanted + 4 || (wanted < cfg.crawl && pace > wanted + 0.3); // para de verdade, sem ir arrastando
       input.throttle = input.brake ? 0 : pace < wanted ? 1 : pace > wanted + 1 ? -1 : 0;
       if (bike.speed < 0) input.throttle = 1;
       unstick(dt, pace, error);
       return input;
     },
   };
+
+  /** Velocidade que ainda permite frear atrás do veículo mais próximo no corredor à frente. */
+  function vehicleAheadSpeed() {
+    if (!traffic) return Infinity;
+    const fx = Math.cos(bike.heading);
+    const fz = Math.sin(bike.heading);
+    let speed = Infinity;
+    for (const v of traffic.vehicles) {
+      // Quem vem andando no sentido contrário está na outra mão; parado no caminho (numa conversão), conta.
+      if (!v.active || (Math.cos(v.heading - bike.heading) < -0.5 && v.speed > 1)) continue;
+      const dx = v.x - bike.x;
+      const dz = v.z - bike.z;
+      const along = dx * fx + dz * fz;
+      if (along <= 0 || along > cfg.carLook) continue;
+      if (Math.abs(dx * fz - dz * fx) > v.width / 2 + cfg.carClearance) continue;
+      const gap = along - v.length / 2 - cfg.followGap - Math.abs(bike.speed) * cfg.followTime; // distância em tempo, não só em metros
+      const theirs = Math.max(0, Math.cos(v.heading - bike.heading) * v.speed); // quanto ele anda no mesmo sentido
+      speed = Math.min(speed, Math.sqrt(theirs * theirs + 2 * cfg.brake * Math.max(0, gap)));
+    }
+    return speed;
+  }
+
+  /**
+   * Velocidade que ainda permite parar na linha de retenção do próximo cruzamento da rota, se for preciso parar:
+   * sinal fechado (conforme `obeyLights`) ou, com `yieldToTraffic`, um veículo já atravessando o cruzamento.
+   * Perto da linha e com passagem livre, ele se compromete a passar e não para mais no meio.
+   */
+  function junctionSpeed() {
+    const next = junctions.find((j) => lengths[j.at] > progress);
+    if (!next) return Infinity;
+    const toLine = lengths[next.at] - progress - nodes[next.nodeId].radius - 2; // para um pouco antes da linha
+    // Cruzamento se atravessa devagar (crossSpeed); os apressados não reduzem (crossSpeed = Infinity).
+    const crossing = Math.sqrt(cfg.crossSpeed ** 2 + 2 * cfg.brake * Math.max(0, toLine));
+    if (passing === next.nodeId || toLine < -3) return crossing;
+    if (mustStopForLight(next, toLine) || (toLine < cfg.yieldLook && someoneCrossing(next.nodeId))) {
+      return Math.sqrt(2 * cfg.brake * Math.max(0, toLine));
+    }
+    if (toLine < cfg.commitDistance) passing = next.nodeId;
+    return crossing;
+  }
+
+  function mustStopForLight({ nodeId, edgeId }, toLine) {
+    if (!signals || cfg.obeyLights === 'nunca') return false;
+    if (cfg.obeyLights === 'radar' && !cameras?.has(nodeId)) return false;
+    const light = signals.stateFor(nodeId, edgeId);
+    const pace = Math.abs(bike.speed);
+    const canStop = (pace * pace) / (2 * cfg.brake * 1.5) < toLine;
+    return light === 'vermelho' || (light === 'amarelo' && canStop);
+  }
+
+  /**
+   * Algum veículo, que não vai no mesmo sentido da moto, já dentro do cruzamento. Quem ainda está chegando
+   * espera a moto (ver `playerHasWay` no trânsito); esperar por ele também faria os dois travarem.
+   */
+  function someoneCrossing(nodeId) {
+    if (!traffic || !cfg.yieldToTraffic) return false;
+    // `inNode` é o registro do próprio trânsito: só quem entrou de fato. Quem está parado na linha não conta.
+    return traffic.vehicles.some((v) => v.active && v.inNode === nodeId && Math.cos(v.heading - bike.heading) < 0.8);
+  }
+
+
 
   /** De nariz numa parede a moto não anda nem vira: dá uma ré curta, com o guidão ao contrário, e tenta de novo. */
   function unstick(dt, pace, error) {
@@ -164,6 +237,23 @@ export function createAutopilot({ city, graph, bike, config: cfg }) {
   }
 
   /**
+   * Ponto por onde atravessar o cruzamento sem sair da própria mão: o centro dele, deslocado para a direita
+   * de quem entra e de quem sai (na reta, fica no meio da faixa; numa curva, abre para o lado certo).
+   * Passar pelo centro exato seria andar em cima da faixa do meio, onde as motos costuram na contramão.
+   */
+  function keepRight(node, inEdge, inForward, nextStep) {
+    const outEdge = edges[nextStep.edge];
+    const side = (edge, forward) => {
+      const sign = forward ? 1 : -1;
+      const lateral = edge.oneWay ? 0 : edge.halfWidth / 2;
+      return { x: -edge.dir.z * sign * lateral, z: edge.dir.x * sign * lateral }; // direita de quem anda nesse sentido
+    };
+    const a = side(inEdge, inForward);
+    const b = side(outEdge, nextStep.forward);
+    return { x: node.x + (a.x + b.x) / 2, z: node.z + (a.z + b.z) / 2 };
+  }
+
+  /**
    * Troca cada trecho da rota pelo meio da faixa da direita. Em cada cruzamento a rota passa pelo centro
    * dele: ligar direto a saída de uma via à entrada da outra cortaria a esquina por cima da calçada.
    */
@@ -180,7 +270,8 @@ export function createAutopilot({ city, graph, bike, config: cfg }) {
       if (i > 0 && hasRoom) points.push(at(entry.radius));
       if (i === route.steps.length - 1) return;
       if (hasRoom) points.push(at(edge.length - exit.radius));
-      points.push({ x: exit.x, z: exit.z });
+      junctions.push({ at: points.length, nodeId: exit.id, edgeId: edge.id });
+      points.push(keepRight(exit, edge, step.forward, route.steps[i + 1]));
     });
     points.push(route.points[route.points.length - 1]);
     return points;

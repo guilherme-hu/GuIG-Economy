@@ -169,5 +169,8 @@ export function createJobs({ city, graph, rng, events, economy, config }) {
   return jobs;
 }
 
+/** Estratégia dos robôs (simulação e `?bot=`): a oferta que paga mais por metro rodado. */
+export const bestPerMeter = (offers) => offers.reduce((a, b) => (b.pay / b.distance > a.pay / a.distance ? b : a));
+
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const round2 = (v) => Math.round(v * 100) / 100;

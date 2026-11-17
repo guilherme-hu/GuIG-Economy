@@ -47,13 +47,14 @@ export function createRules({ city, signals, traffic, bike, economy, events, rng
   };
 
   /** Três faixas: tranco (devagar), conserto (médio) e acidente (rápido). */
-  function impact(speed, kind, vehicleId) {
-    if (speed > cfg.crashSpeed) {
+  /** `chargeable`: o conserto só sai do bolso quando foi a moto que bateu. */
+  function impact(speed, kind, vehicleId, crashAt = cfg.crashSpeed, chargeable = true) {
+    if (speed > crashAt) {
       bike.frozen = true;
       return events.emit('crash', { kind, vehicleId, relSpeed: speed });
     }
     events.emit('bump', { kind, speed });
-    if (speed < cfg.damageSpeed || repairCooldown > 0) return;
+    if (!chargeable || speed < cfg.damageSpeed || repairCooldown > 0) return;
     repairCooldown = cfg.repairCooldown;
     economy.chargeFine(cfg.repairCost, 'conserto');
     events.emit('damage', { kind, amount: cfg.repairCost });
@@ -71,8 +72,13 @@ export function createRules({ city, signals, traffic, bike, economy, events, rng
       const across = dz * fx - dx * fz;
       if (Math.abs(along) > v.length / 2 + bike.radius || Math.abs(across) > v.width / 2 + bike.radius) continue;
 
-      const relSpeed = Math.hypot(Math.cos(bike.heading) * bike.speed - fx * v.speed, Math.sin(bike.heading) * bike.speed - fz * v.speed);
-      impact(relSpeed, 'veiculo', v.id);
+      const bx = Math.cos(bike.heading) * bike.speed;
+      const bz = Math.sin(bike.heading) * bike.speed;
+      const relSpeed = Math.hypot(bx - fx * v.speed, bz - fz * v.speed);
+      // Quem bate leva a pior: se o veículo estava mais rápido que a moto, foi ele que bateu nela, e é preciso
+      // mais força para ser acidente (uma raspada de carro na moto parada é conserto, não morte).
+      const hitByIt = v.speed > Math.abs(bike.speed);
+      impact(relSpeed, 'veiculo', v.id, hitByIt ? cfg.crashSpeedWhenHit : cfg.crashSpeed, !hitByIt);
       if (bike.frozen) return;
       // A moto é empurrada para fora da lataria e perde o embalo.
       const push = v.width / 2 + bike.radius - Math.abs(across);

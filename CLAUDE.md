@@ -97,8 +97,10 @@ createBike(config.bike, graph, spawn: {x,z,heading}) → {
 }
 
 // sim/autopilot.js   segue uma rota pela faixa da direita devolvendo o mesmo inputState do teclado
-createAutopilot({ city, graph, bike, config: config.autopilot }) → {
-  active, arrived, wanted /* m/s que ele tenta manter */, input,
+// com traffic/signals/cameras, freia para o veículo à frente, cede a quem está no cruzamento e para no sinal
+// conforme config.obeyLights ('sempre' | 'radar' | 'nunca'); perfis prontos em config.autopilot.profiles
+createAutopilot({ city, graph, bike, config: config.autopilot, traffic?, signals?, cameras? }) → {
+  active, arrived, wanted /* m/s que ele tenta manter */, limitedBy /* 'via'|'veículo à frente'|'cruzamento' */, input,
   follow(route /* de graph.route */), goTo({ edge, t }) → boolean, stop(), step(dt) → inputState,
 }
 
@@ -159,6 +161,10 @@ Precisa mudar o contrato? Mude aqui no mesmo commit e avise no relatório final.
 
 `window.__game` (sempre disponível) expõe `sim`, `config`, `events`, `loop`, `view` (`stage`, `cityView`, `aerial`), e:
 `state()` (resumo JSON), `teleport(nodeId)`, `goTo(poiId)`, `autopilot(true|false)`, `setTimeScale(n)`, `acceptOffer(i)`, `loop.advance(nPassos)`.
+
+`?bot=cauteloso|apressado|kamikaze` (só para testes): o robô joga sozinho, dia após dia, com aquele perfil; `&vel=3` acelera o tempo.
+
+`node scripts/balance.js [dias] [perfis] [sementes]` simula dias inteiros com trânsito, radares, multas e batidas, para calibrar a economia.
 
 `?debug=mapa` abre a vista aérea com arrastar e zoom; `&cam=x,z,distância,inclinação,giro` (graus) fixa a câmera para screenshots.
 `state().view.buildingsLoaded` avisa quando os modelos terminaram de carregar.

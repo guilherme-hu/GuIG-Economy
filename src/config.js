@@ -108,6 +108,22 @@ export const config = {
     stallSpeed: 0.3, // m/s: abaixo disso, acelerando, ele se considera encalhado
     stallTime: 0.6, // s encalhado até reagir
     backUpTime: 0.9, // s de ré para desencalhar
+    // Comportamento no trânsito (só vale quando o piloto recebe traffic/signals):
+    obeyLights: 'sempre', // 'sempre' | 'radar' (fura onde não há radar) | 'nunca'
+    carLook: 45, // m à frente em que ele procura veículos
+    carClearance: 0.9, // m de folga lateral: abaixo disso o veículo está no caminho
+    followGap: 3, // m que ele deixa atrás do veículo da frente, parado
+    followTime: 1, // s de distância para o veículo da frente, em movimento
+    commitDistance: 5, // m antes da linha em que, com o sinal aberto, ele se compromete a passar
+    crossSpeed: kmh(30), // velocidade máxima para atravessar um cruzamento
+    yieldToTraffic: true, // dá a preferência a quem já está atravessando o cruzamento
+    yieldLook: 25, // m antes da linha em que ele começa a olhar o cruzamento
+    // Perfis de direção (sobrepõem os valores acima): usados pela simulação e pela flag `?bot=<perfil>`.
+    profiles: {
+      cauteloso: {}, // respeita sinal e preferência, anda no limite da via
+      apressado: { cruise: 0.9 * 1.4, cornerGrip: 8, brake: 8.4, obeyLights: 'radar', followGap: 1.5, followTime: 0.3, carClearance: 0.6, crossSpeed: Infinity }, // fura onde não há radar
+      kamikaze: { cruise: 0.9 * 1.4, cornerGrip: 8, brake: 8.4, obeyLights: 'nunca', yieldToTraffic: false, followGap: 1.5, followTime: 0.3, carClearance: 0.6, crossSpeed: Infinity },
+    },
   },
 
   signals: {
@@ -130,7 +146,7 @@ export const config = {
     lookAhead: 40,
     crawlSpeed: 3, // m/s: abaixo disso conta como parado na linha
     spawnSpan: 0.6, // nasce nos primeiros 60% da via
-    junctionSpeed: kmh(45), // velocidade com que atravessam cruzamentos
+    junctionSpeed: kmh(30), // velocidade com que atravessam cruzamentos (e dobram esquinas)
     rerouteAfter: 3, // s esperando a saída liberar antes de escolher outra rua
     junctionHold: 6, // s em que uma faixa pode mandar carros seguidos num cruzamento
     accel: 5,
@@ -138,13 +154,18 @@ export const config = {
     hardBrake: 12,
     smoothing: 8, // quão rápido a posição desenhada segue a faixa (suaviza as curvas)
     stuckTime: 10,
-    stuckMinDistance: 250, // só some longe, fora da vista (além de onde os carros nascem)
+    patience: 8, // s parado até o motorista deixar de esperar a moto do jogador
+    stuckMinDistance: 250,
+    playerMargin: 2, // m além do raio do cruzamento em que a moto do jogador conta como "lá dentro"
+    playerNear: 10, // m: tão perto assim à frente, a moto do jogador é vista mesmo fora do corredor
+    playerSide: 1.5, // m além da lateral do veículo em que a moto conta (não pega a outra mão)
+    playerYieldTime: 2.5, // s: quem vai cruzar espera a moto que chega nesse tempo com o sinal aberto // só some longe, fora da vista (além de onde os carros nascem)
     // Outros entregadores: andam acima do limite, costuram no corredor e furam sinal.
     motoShare: 0.22, // fração do trânsito que é moto
     moto: { type: 'moto', model: 'moto', length: 2, width: 0.8, reckless: true },
     motoPace: [1.15, 1.55], // múltiplo do limite da via
     motoRunRed: 0.6, // fração das motos que fura o vermelho
-    motoLine: 0.3, // m à direita da faixa pintada: é por ali que elas costuram
+    motoLine: 0.7, // m à direita da faixa pintada: é por ali que elas costuram
     corridorFit: 0.9, // fração da largura somada que conta como "no caminho" (deixa a moto passar raspando)
     fleet: [
       { type: 'carro', model: 'cars/sedan', length: 4.0, width: 2.2 },
@@ -161,6 +182,7 @@ export const config = {
 
   rules: {
     crashSpeed: kmh(40), // impacto acima disso = acidente, fim de jogo
+    crashSpeedWhenHit: kmh(60), // quando é o veículo que acerta a moto (ela não estava indo para cima dele)
     damageSpeed: kmh(20), // entre isso e o acidente: a moto quebra e o conserto sai do seu bolso
     repairCost: 30, // manete, retrovisor, pisca: o dano é do entregador mesmo com moto alugada (escala do jogo)
     crashScreenDelay: 2.4, // s de efeito do acidente antes da tela de fim
@@ -202,9 +224,9 @@ export const config = {
     pickupStopTime: 1.5,
     stopSpeed: kmh(5),
     stopRadius: 9, // cobre o marcador do outro lado de uma avenida larga
-    deadlineBuffer: 30,
-    refSpeedShort: kmh(28), // corridas curtas: prazo folgado
-    refSpeedLong: kmh(40), // corridas longas: prazo apertado
+    deadlineBuffer: 45,
+    refSpeedShort: kmh(20), // corridas curtas: prazo folgado (velocidade média no trânsito, com sinais)
+    refSpeedLong: kmh(28), // corridas longas: prazo apertado
     refDistanceShort: 600,
     refDistanceLong: 2600,
     maxTipShare: 0.3,
@@ -217,9 +239,9 @@ export const config = {
     maxRating: 5,
     minRating: 4.2,
     ratingOnTime: 0.03,
-    ratingLateMin: 0.1,
-    ratingLateMax: 0.5,
-    ratingCancelled: 0.5,
+    ratingLateMin: 0.05, // a nota é uma média: uma entrega ruim pesa pouco, várias derrubam
+    ratingLateMax: 0.2,
+    ratingCancelled: 0.25,
     acceptanceFloor: 0.5, // abaixo disso o app esconde as ofertas boas
     acceptanceWindow: 10,
     fuelPerKm: 0.6, // por km do jogo: ~R$ 0,20 por km real (gasolina + manutenção) × jobs.kmScale
