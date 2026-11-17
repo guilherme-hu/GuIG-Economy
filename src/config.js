@@ -135,6 +135,17 @@ export const config = {
     cancelAfterLate: 60,
   },
 
+  autopilot: {
+    cruise: kmh(54),
+    cornerSpeed: kmh(20),
+    cornerMargin: 6, // m antes da curva em que já deve estar devagar
+    decel: 6,
+    lookahead: 6,
+    lookaheadTime: 0.5, // s à frente em que mira, em velocidade
+    steerGain: 2.5,
+    arriveDistance: 3,
+  },
+
   economy: {
     startMoney: 0,
     startRating: 4.8,
