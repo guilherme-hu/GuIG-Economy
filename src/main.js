@@ -29,7 +29,6 @@ import { copy } from './ui/copy.js';
 import { createHud } from './ui/hud.js';
 import { createWarning } from './ui/warning.js';
 import { createTutorial } from './ui/tutorial.js';
-import { distance as meters } from './ui/format.js';
 import { createScreens } from './ui/screens.js';
 
 const canvas = document.getElementById('jogo');
@@ -101,7 +100,7 @@ events.on('fine', ({ kind, amount }) => phone.notify(fineNotice[kind](amount)));
 events.on('crash', ({ relSpeed }) => {
   sim.phase = 'acidente'; // a simulação para; o efeito roda e só depois vem a tela
   bikeView.crash(relSpeed);
-  warning.show('');
+  warning.show(null);
   phone.close();
   hud.flash('batida');
   setTimeout(showAccident, config.rules.crashScreenDelay * 1000);
@@ -148,10 +147,11 @@ events.on('damage', ({ amount }) => phone.notify(copy.notify.repair(amount)));
 /** Aviso do alto da tela: contador da calçada tem prioridade sobre o radar à frente. */
 function updateWarning() {
   if (rules.sidewalkLeft !== null) {
-    return warning.show(`Você está na calçada: infração de trânsito. Multa em ${rules.sidewalkLeft.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} s`);
+    return warning.show('calcada', rules.sidewalkLeft, rules.sidewalkLeft / config.rules.sidewalkGrace);
   }
   const camera = rules.cameraAhead();
-  warning.show(camera ? `Radar de sinal vermelho em ${meters(camera.distance)}` : '', 'radar');
+  if (camera) return warning.show('radar', camera.distance, camera.distance / config.rules.cameraWarnDistance);
+  warning.show(null);
 }
 
 stage.setFog(!debugMap);

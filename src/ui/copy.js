@@ -127,6 +127,11 @@ export const copy = {
   },
 
   /** Notificações prontas: main.js passa o resultado para phone.notify(). */
+  warning: {
+    radar: { title: 'Radar à frente', hint: 'Sinal vermelho aqui dá multa' },
+    calcada: { title: 'Na calçada!', hint: 'Infração de trânsito: multa em' },
+  },
+
   notify: {
     fineRedLight: (amount) => ({
       kind: 'multa',
