@@ -15,11 +15,17 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   // É isso que impede os carros de se atravessarem ao cruzar e ao virar.
   const inside = new Int16Array(nodes.length); // veículos dentro de cada cruzamento
   const heldBy = new Int32Array(nodes.length).fill(-1); // faixa de chegada que está com a vez
+  const heldUntil = new Float64Array(nodes.length); // até quando a faixa com a vez ainda pode mandar mais carros
   const lineOf = (v) => v.edge * 4 + v.lane; // duas faixas da mesma avenida não entram juntas: elas se fundiriam na saída
+  let clock = 0;
 
-  const canEnter = (nodeId, v) => inside[nodeId] === 0 || heldBy[nodeId] === lineOf(v);
+  // A vez dura pouco: senão a faixa que pegou o cruzamento passa a fila inteira e as outras esperam o verde todo.
+  const canEnter = (nodeId, v) => inside[nodeId] === 0 || (heldBy[nodeId] === lineOf(v) && clock < heldUntil[nodeId]);
   function enter(v, nodeId) {
-    if (inside[nodeId]++ === 0) heldBy[nodeId] = lineOf(v);
+    if (inside[nodeId]++ === 0) {
+      heldBy[nodeId] = lineOf(v);
+      heldUntil[nodeId] = clock + cfg.junctionHold;
+    }
     v.inNode = nodeId;
   }
   function leave(v) {
@@ -36,6 +42,7 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   }
 
   function step(dt, focus) {
+    clock += dt;
     spawn(focus);
     for (const v of vehicles) {
       if (!v.active) continue;
@@ -49,8 +56,11 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
     const endNode = v.forward ? edge.b : edge.a;
     const stopAt = edge.length - nodes[endNode].radius - v.length / 2;
 
+    // Quem já entrou no cruzamento segue; quem não entrou decide aqui se espera na linha de retenção.
+    const committed = v.inNode === endNode;
+    const wait = !committed && mustWait(v, endNode, stopAt);
     let free = gapAhead(v, focus) - cfg.followGap;
-    if (v.s < stopAt + 1 && mustWait(v, endNode, stopAt)) free = Math.min(free, stopAt - v.s);
+    if (wait) free = Math.min(free, stopAt - v.s);
 
     // Chega no cruzamento em velocidade de curva: sem isso entraria a 100 km/h numa rua curta com sinal fechado.
     const cruise = Math.min(edge.speedLimit * v.pace, Math.sqrt(cfg.junctionSpeed ** 2 + 2 * cfg.brake * Math.max(0, stopAt - v.s)));
@@ -58,12 +68,11 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
     v.braking = target < v.speed - 0.5;
     v.speed = target < v.speed ? Math.max(target, v.speed - cfg.hardBrake * dt) : Math.min(target, v.speed + cfg.accel * dt);
     v.s += v.speed * dt;
-    if (v.inNode === endNode) {
-      // já está cruzando
-    } else if (v.s >= stopAt) {
+    if (wait) v.s = Math.min(v.s, stopAt); // a linha de retenção não deixa "vazar" para dentro do cruzamento
+    if (!committed && !wait && v.s >= stopAt) {
       leave(v);
       enter(v, endNode);
-    } else if (v.inNode >= 0 && v.s > nodes[v.inNode].radius + v.length / 2) {
+    } else if (!committed && v.inNode >= 0 && v.s > nodes[v.inNode].radius + v.length / 2) {
       leave(v); // saiu do cruzamento anterior
     }
     if (v.s >= edge.length) turnAt(v, endNode, edge.length);
@@ -71,12 +80,14 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
     unstick(v, dt, focus);
   }
 
-  /** Vermelho ou amarelo que ainda dá para respeitar; ou cruzamento sem semáforo já ocupado por outra via. */
+  /** Vermelho, amarelo que ainda dá para respeitar, cruzamento ocupado por outra faixa ou sem espaço na saída. */
   function mustWait(v, nodeId, stopAt) {
     const light = signals.stateFor(nodeId, v.edge);
     if (light === 'vermelho') return true;
-    // No amarelo para quem consegue parar; quem está quase parado na linha não arranca. Os 'furões' passam.
-    if (light === 'amarelo') return !v.runsRed && (v.speed < cfg.crawlSpeed || (v.speed * v.speed) / (2 * cfg.hardBrake) < stopAt - v.s);
+    // No amarelo para quem consegue parar; quem está quase parado na linha não arranca. Os 'furões' passam...
+    const stopsOnYellow = !v.runsRed && (v.speed < cfg.crawlSpeed || (v.speed * v.speed) / (2 * cfg.hardBrake) < stopAt - v.s);
+    if (light === 'amarelo' && stopsOnYellow) return true;
+    // ...mas ninguém entra num cruzamento ocupado: dois carros se cruzando lá dentro travariam um ao outro.
     return !canEnter(nodeId, v) || !exitClear(v, nodeId);
   }
 

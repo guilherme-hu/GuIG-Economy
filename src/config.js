@@ -131,6 +131,7 @@ export const config = {
     crawlSpeed: 3, // m/s: abaixo disso conta como parado na linha
     spawnSpan: 0.6, // nasce nos primeiros 60% da via
     junctionSpeed: kmh(45), // velocidade com que atravessam cruzamentos
+    junctionHold: 6, // s em que uma faixa pode mandar carros seguidos num cruzamento
     accel: 5,
     brake: 6, // desaceleração com que planejam a parada
     hardBrake: 12,
