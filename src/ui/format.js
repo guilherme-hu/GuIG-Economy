@@ -32,6 +32,9 @@ export function clock(seconds) {
   return `${s < 0 && whole > 0 ? '-' : ''}${mm}:${ss}`;
 }
 
+/** minutos desde a meia-noite → "19:05" */
+export const timeOfDay = (minutes) => `${Math.floor(minutes / 60) % 24}:${String(Math.floor(minutes % 60)).padStart(2, '0')}`;
+
 /** m/s → km/h inteiro */
 export const kmh = (ms) => Math.round(Math.abs(num(ms)) * 3.6);
 

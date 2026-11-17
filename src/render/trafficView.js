@@ -1,7 +1,9 @@
 /** Veículos (modelos instanciados) e semáforos (poste + lâmpada colorida por aproximação). */
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildBike } from './bikeView.js';
+import { glowTexture } from './streetLights.js';
 
 const LOOK = {
   carYaw: Math.PI / 2, // os carros da Kenney têm a frente em +Z
@@ -9,8 +11,8 @@ const LOOK = {
   radar: 0xff8a1f, // caixa laranja do radar, no alto do poste
   colors: { verde: 0x3dff7a, amarelo: 0xffc93d, vermelho: 0xff3b30 },
   off: { verde: 0x10261a, amarelo: 0x2b2310, vermelho: 0x2e1210 }, // lente apagada: escura, para só a acesa chamar atenção
-  bag: 0xc8ff2e, // o baú, que ganha a cor do app de cada entregador
-  apps: [0xff3b30, 0xff8a00, 0x8b3dff, 0x00a8ff, 0xc8ff2e],
+  bag: 0x06c167, // o baú, que ganha a cor do app de cada entregador
+  apps: [0xff3b30, 0xff8a00, 0x8b3dff, 0x00a8ff, 0x06c167],
   jacket: 0x2b2f3d,
   helmet: 0xe9ecf2,
 };
@@ -20,6 +22,7 @@ export function createTrafficView({ scene, assets, traffic, fleet }) {
   let batches = null; // model → { meshes, scale, count }
 
   const motos = createMotoBatch(scene, traffic.vehicles.length);
+  const lights = createCarLights(scene, traffic.vehicles.length);
   assets.loadAll([...new Set(fleet.map((kind) => kind.model))]).then((models) => {
     batches = new Map();
     for (const kind of fleet) {
@@ -27,6 +30,7 @@ export function createTrafficView({ scene, assets, traffic, fleet }) {
       const meshes = parts.map((part) => {
         const mesh = new THREE.InstancedMesh(part.geometry, part.material, traffic.vehicles.length);
         mesh.frustumCulled = false; // as instâncias se espalham em volta do jogador
+        mesh.castShadow = true;
         scene.add(mesh);
         return mesh;
       });
@@ -39,6 +43,7 @@ export function createTrafficView({ scene, assets, traffic, fleet }) {
       if (!batches) return;
       for (const batch of batches.values()) batch.count = 0;
       motos.begin();
+      lights.begin();
       for (const v of traffic.vehicles) {
         if (!v.active) continue;
         if (v.type === 'moto') {
@@ -52,6 +57,7 @@ export function createTrafficView({ scene, assets, traffic, fleet }) {
         dummy.updateMatrix();
         for (const mesh of batch.meshes) mesh.setMatrixAt(batch.count, dummy.matrix);
         batch.count++;
+        lights.add(v);
       }
       for (const batch of batches.values()) {
         for (const mesh of batch.meshes) {
@@ -60,6 +66,61 @@ export function createTrafficView({ scene, assets, traffic, fleet }) {
         }
       }
       motos.end();
+      lights.end();
+    },
+    setNight: lights.setNight,
+  };
+}
+
+/**
+ * Faróis e lanternas dos carros (sempre visíveis, mais fortes à noite) e o facho do farol no asfalto (só à noite).
+ * As lâmpadas são feitas num carro de 1 × 1 m e esticadas para o comprimento e a largura de cada veículo.
+ */
+function createCarLights(scene, capacity) {
+  const lamp = (x, z, color) => {
+    const box = new THREE.BoxGeometry(0.02, 0.14, 0.18).translate(x, 0.68, z);
+    const rgb = new THREE.Color(color);
+    box.setAttribute('color', new THREE.Float32BufferAttribute(Array.from({ length: box.attributes.position.count }, () => rgb.toArray()).flat(), 3));
+    return box;
+  };
+  const geometry = mergeGeometries([lamp(0.5, 0.32, 0xfff1cf), lamp(0.5, -0.32, 0xfff1cf), lamp(-0.5, 0.36, 0xff2a1a), lamp(-0.5, -0.36, 0xff2a1a)]);
+  const lampMaterial = new THREE.MeshBasicMaterial({ vertexColors: true });
+  const lamps = new THREE.InstancedMesh(geometry, lampMaterial, capacity);
+  const beamMaterial = new THREE.MeshBasicMaterial({ color: 0xfff0c8, map: glowTexture(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 });
+  const beams = new THREE.InstancedMesh(new THREE.PlaneGeometry(14, 5).rotateX(-Math.PI / 2).translate(6, 0.18, 0), beamMaterial, capacity);
+  beams.renderOrder = 1;
+  for (const mesh of [lamps, beams]) {
+    mesh.frustumCulled = false;
+    mesh.count = 0;
+  }
+  scene.add(lamps, beams);
+
+  const dummy = new THREE.Object3D();
+  let count = 0;
+  return {
+    begin: () => (count = 0),
+    add(v) {
+      dummy.position.set(v.x, 0, v.z);
+      dummy.rotation.y = -v.heading;
+      dummy.scale.set(v.length, 1, v.width);
+      dummy.updateMatrix();
+      lamps.setMatrixAt(count, dummy.matrix);
+      dummy.position.set(v.x + Math.cos(v.heading) * v.length * 0.5, 0, v.z + Math.sin(v.heading) * v.length * 0.5);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      beams.setMatrixAt(count, dummy.matrix);
+      count++;
+    },
+    end() {
+      for (const mesh of [lamps, beams]) {
+        mesh.count = count;
+        mesh.instanceMatrix.needsUpdate = true;
+      }
+    },
+    setNight(k) {
+      lampMaterial.color.setScalar(0.35 + k * 1.4);
+      beams.visible = k > 0.01;
+      beamMaterial.opacity = k * 0.3;
     },
   };
 }
@@ -86,6 +147,7 @@ function createMotoBatch(scene, capacity) {
     if (isBag) material.color.set(0xffffff); // a cor vem de cada instância
     const mesh = new THREE.InstancedMesh(part.geometry.clone().applyMatrix4(part.matrixWorld), material, capacity);
     mesh.frustumCulled = false;
+    mesh.castShadow = true;
     mesh.count = 0;
     meshes.push(mesh);
     if (isBag) bag = mesh;

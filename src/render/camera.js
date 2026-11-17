@@ -1,4 +1,4 @@
-/** Câmeras. Por enquanto só a aérea; a de 3ª pessoa atrás da moto entra no M2. */
+/** Câmeras: a aérea (menu e mapa de debug) e a de 3ª pessoa atrás da moto. */
 import * as THREE from 'three';
 import { MapControls } from 'three/addons/controls/MapControls.js';
 
@@ -50,11 +50,15 @@ export function createAerialCamera({ size, focus, canvas, interactive, pose }) {
 
 // A sensação de velocidade vem daqui: câmera baixa e perto, e o FOV abre bastante quando a moto corre.
 const CHASE = { back: 5.2, height: 2.3, ahead: 6, lookHeight: 1.1, follow: 5, fov: 60, fovBoost: 32, far: 1600 };
+// Tremor: `trauma` (0..1) sobe nas batidas e cai sozinho; acima de `fastKmh` a velocidade também treme a câmera.
+const SHAKE = { amplitude: 0.45, decay: 1.6, fastKmh: 80, speedTrauma: 0.35 };
 
 /** Câmera em 3ª pessoa: atrás e acima da moto, com mola na direção e FOV que abre com a velocidade. */
 export function createChaseCamera({ bike, maxSpeed }) {
   const camera = new THREE.PerspectiveCamera(CHASE.fov, 1, 0.3, CHASE.far);
   let heading = bike.heading;
+  let trauma = 0;
+  let clock = 0;
 
   return {
     camera,
@@ -65,6 +69,11 @@ export function createChaseCamera({ bike, maxSpeed }) {
     /** Sem mola: usar depois de teleportar. */
     snap() {
       heading = bike.heading;
+      trauma = 0;
+    },
+    /** Sacode a câmera; `amount` de 0 a 1. */
+    shake(amount) {
+      trauma = Math.min(1, trauma + amount);
     },
     update(dt) {
       const delta = Math.atan2(Math.sin(bike.heading - heading), Math.cos(bike.heading - heading));
@@ -73,6 +82,15 @@ export function createChaseCamera({ bike, maxSpeed }) {
       const dz = Math.sin(heading);
       camera.position.set(bike.x - dx * CHASE.back, CHASE.height, bike.z - dz * CHASE.back);
       camera.lookAt(bike.x + dx * CHASE.ahead, CHASE.lookHeight, bike.z + dz * CHASE.ahead);
+      clock += dt;
+      trauma = Math.max(0, trauma - SHAKE.decay * dt);
+      const fast = Math.max(0, (Math.abs(bike.speed) * 3.6 - SHAKE.fastKmh) / (maxSpeed * 3.6 - SHAKE.fastKmh));
+      const shake = (trauma * trauma + fast * fast * SHAKE.speedTrauma * SHAKE.speedTrauma) * SHAKE.amplitude;
+      if (shake > 0.001) {
+        camera.position.y += shake * (Math.sin(clock * 37) + Math.sin(clock * 23)) * 0.5;
+        camera.rotateZ(shake * 0.12 * Math.sin(clock * 29));
+        camera.rotateY(shake * 0.06 * Math.sin(clock * 17));
+      }
       const fov = CHASE.fov + CHASE.fovBoost * Math.min(1, Math.abs(bike.speed) / maxSpeed);
       if (Math.abs(fov - camera.fov) > 0.05) {
         camera.fov = fov;

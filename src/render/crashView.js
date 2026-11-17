@@ -4,7 +4,7 @@ import * as THREE from 'three';
 const LOOK = {
   gravity: 22,
   flash: { color: 0xffa436, radius: 3.2, time: 0.45 },
-  debris: { count: 16, size: [0.06, 0.2], colors: [0xc8ff2e, 0xff5a4e, 0x1b1d26, 0x9aa0ad], speed: [3, 9], lift: [4, 10] },
+  debris: { count: 16, size: [0.06, 0.2], colors: [0x06c167, 0xff5a4e, 0x1b1d26, 0x9aa0ad], speed: [3, 9], lift: [4, 10] },
   rider: { forward: 0.55, minForward: 6, lift: 8.5, spin: 9, rest: 0.25 },
   bike: { forward: 0.3, fall: 6, slide: 16 }, // slide: desaceleração do escorregão, m/s²
 };

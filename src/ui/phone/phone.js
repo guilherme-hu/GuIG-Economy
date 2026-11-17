@@ -12,16 +12,17 @@ import { drawMinimap } from './minimap.js';
 const TABS = ['ofertas', 'corrida', 'carteira'];
 const NOTIFY_MS = 4500;
 const NOTIFY_MAX = 3;
+const SHIFT_START_MIN = 17 * 60; // o turno começa às 17h
 const NOTIFY_ICON = { multa: icons.fine, gorjeta: icons.tip, nota: icons.star, pagamento: icons.cash, info: icons.info };
 
 const t = copy.phone;
-const wordmark = `<span class="wordmark">${icons.bolt}<span class="wordmark__text">${copy.brand.name}</span></span>`;
+const wordmark = `<span class="wordmark">${icons.bolt}<span class="wordmark__text"><i>rapi</i>dão</span></span>`;
 
 const template = `
 <div class="ui phone" data-open="false" data-tab="ofertas">
-  <div class="phone__toasts" data-ref="toasts" aria-live="polite"></div>
+  <div class="phone__toasts light" data-ref="toasts" aria-live="polite"></div>
 
-  <button class="phone__handle" data-ref="handle" type="button" aria-label="${t.closed.open} ${copy.brand.name}">
+  <button class="phone__handle light" data-ref="handle" type="button" aria-label="${t.closed.open} ${copy.brand.name}">
     ${wordmark}
     <span class="phone__handle-badge num" data-ref="handleBadge" hidden></span>
     <span class="phone__handle-key"><span class="kbd">${t.closed.key}</span></span>
@@ -30,9 +31,9 @@ const template = `
   <div class="phone__closehint"><span class="kbd">${t.closed.key}</span>${t.closed.close}</div>
 
   <div class="phone__device" data-ref="device">
-    <div class="phone__screen">
+    <div class="phone__screen light">
       <div class="phone__status">
-        <span class="phone__status-shift num">${icons.clock}<span data-ref="shift">0:00</span></span>
+        <span class="phone__status-shift num"><span data-ref="shift">17:00</span></span>
         <span class="phone__island"></span>
         <span class="phone__status-icons">${icons.signal}${icons.battery}</span>
       </div>
@@ -94,7 +95,7 @@ const template = `
           <div class="empty empty--compact" data-ref="rideEmpty">
             <strong>${t.ride.emptyTitle}</strong>
             <span>${t.ride.emptyText}</span>
-            <button class="btn btn--brand" data-ref="rideEmptyAction" type="button">${t.ride.emptyAction}</button>
+            <button class="btn btn--dark" data-ref="rideEmptyAction" type="button">${t.ride.emptyAction}</button>
           </div>
         </section>
 
@@ -176,7 +177,7 @@ const offerTemplate = (index) => `
   </div>
   <div class="offer__actions">
     <button class="btn btn--ghost" data-ref="decline" type="button">${t.offers.decline}</button>
-    <button class="btn btn--brand" data-ref="accept" type="button">${t.offers.accept}<span class="kbd">${index + 1}</span></button>
+    <button class="btn btn--dark" data-ref="accept" type="button">${t.offers.accept}<span class="kbd">${index + 1}</span></button>
   </div>
   <span class="offer__expires num" data-ref="expires"></span>
   <div class="offer__bar"><i data-ref="bar"></i></div>
@@ -363,7 +364,9 @@ export function createPhone(root, { onAccept = () => {}, onDecline = () => {} } 
     setHidden(r.dot_corrida, !active || tab === 'corrida');
 
     if (!open) return;
-    setKeyed(r.shift, Math.ceil(sim.shift?.timeLeft ?? 0), fmt.clock);
+    // o relógio do celular mostra a hora do dia: o turno vai das 17h até quase 21h
+    const worked = 1 - (sim.shift?.timeLeft ?? 0) / config.shift.duration;
+    setKeyed(r.shift, Math.floor(SHIFT_START_MIN + worked * config.economy.shiftHours * 60), fmt.timeOfDay);
     setKeyed(r.rating, Math.round((sim.economy?.rating ?? 0) * 100), (v) => fmt.rating(v / 100));
     if (tab === 'ofertas') updateOffers(offers, !!active);
     else if (tab === 'corrida') updateRide(sim, active);

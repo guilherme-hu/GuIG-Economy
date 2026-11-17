@@ -2,12 +2,13 @@
 
 Jogo 3D de navegador para o trabalho final de Novos Modelos de Negócio. Tema: uberização do trabalho.
 Você é motoboy do app fictício **Rapidão** numa cidade caótica. Design de jogo e marcos: [PLANO.md](PLANO.md).
-Publicado em https://guilherme-hu.github.io/GuIG-Economy/ a cada push na `main`.
+Publicado em https://guilherme-hu.github.io/GuIG-Economy/ com `npm run deploy` (build na branch `gh-pages`), depois do merge na `main`.
 
 ## Stack (não mude sem pedir)
 
 - Vite + three.js, JavaScript puro (ES modules). Sem TypeScript, sem framework, sem engine de física.
 - UI (celular, HUD, menus) em HTML/CSS sobre o canvas. Nada de UI desenhada em WebGL.
+- Visual: paródia de app de entrega (preto, branco e verde #06C167, fonte Manrope em `public/assets/fonts/`). Na rua, cartões pretos; celular e telas cheias claros (classe `.light`, que inverte a escala de cinzas em `ui/tokens.css`). Textos sem emojis.
 - Modelos 3D: só os CC0 em `public/assets/models/` (Kenney). Som: sintetizado em WebAudio.
 - Testes: `node --test`. Dependências: só `three` e `vite`.
 - Todo texto do jogo em pt-BR. Código e comentários em pt-BR quando fizer sentido; identificadores em inglês.
@@ -35,8 +36,9 @@ src/
   core/    loop.js  events.js  rng.js  input.js
   sim/     city/generator.js  city/graph.js  (+ city/geometry.js  city/lots.js  city/pois.js, internos do gerador)
            bike.js  traffic.js  signals.js  rules.js  jobs.js  economy.js  shift.js  autopilot.js
-  render/  scene.js  assets.js  cityView.js (+ terrain.js  roads.js  buildings.js  batch.js, as partes dele)
-           bikeView.js  trafficView.js  markersView.js  camera.js  effects.js
+  render/  scene.js (céu, luz do fim de tarde à noite, sombras)  assets.js
+           cityView.js (+ terrain.js  roads.js  buildings.js  streetLights.js  batch.js, as partes dele)
+           bikeView.js  crashView.js  trafficView.js  markersView.js (destino + rota no chão)  camera.js  effects.js
   ui/      base.css  tokens.css  phone/  hud.js  screens.js  tutorial.js
   audio/   audio.js
 test/      um arquivo por módulo de sim/
@@ -160,7 +162,9 @@ Precisa mudar o contrato? Mude aqui no mesmo commit e avise no relatório final.
 ## Como verificar sem um humano jogando
 
 `window.__game` (sempre disponível) expõe `sim`, `config`, `events`, `loop`, `view` (`stage`, `cityView`, `aerial`), e:
-`state()` (resumo JSON), `teleport(nodeId)`, `goTo(poiId)`, `autopilot(true|false)`, `setTimeScale(n)`, `acceptOffer(i)`, `loop.advance(nPassos)`.
+`state()` (resumo JSON), `teleport(nodeId)`, `goTo(poiId)`, `autopilot(true|false)`, `setTimeScale(n)`, `acceptOffer(i)`, `audio`, `loop.advance(nPassos)`.
+`loop.advance(n)` também desenha um quadro: com o painel do navegador escondido o `requestAnimationFrame` para, e é assim que a tela atualiza para o screenshot.
+A hora do dia segue o turno (`1 − timeLeft / duração`); para ver a noite, `sim.shift.timeLeft = 100` e `loop.advance(1)`.
 
 `?bot=cauteloso|apressado|kamikaze` (só para testes): o robô joga sozinho, dia após dia, com aquele perfil; `&vel=3` acelera o tempo.
 
@@ -175,6 +179,6 @@ Só então marque `[x]` no PLANO.md. O que não pôde ser verificado fica escrit
 
 ## Fluxo de trabalho
 
-- Uma issue do GitHub por marco. Commit de marco: `M3: celular, ofertas e GPS (closes #N)`, com push na `main`.
+- Uma issue do GitHub por marco, uma branch por marco e um PR que fecha a issue. Nada de push direto na `main`; o merge só quando pedirem.
 - Quem commita é o orquestrador. **Subagentes não rodam git** e só tocam nos arquivos que receberam.
 - Jogo original: não copie nome, arte, personagens ou mapa de nenhum jogo ou marca existente.

@@ -1,4 +1,4 @@
-/* Aviso de trânsito: canto esquerdo, fora do centro da visão. Entra deslizando; pulsa quando está acabando. */
+/* Aviso de trânsito: cartão preto no canto esquerdo, com a placa ao lado. Entra deslizando; pulsa quando está acabando. */
 .warning {
   position: absolute;
   left: 20px;
@@ -8,11 +8,10 @@
   gap: 16px;
   min-width: 300px;
   padding: 14px 20px 14px 14px;
-  border-radius: 18px;
+  border-radius: 16px;
   color: #fff;
-  background: rgba(16, 17, 24, 0.82);
+  background: rgb(0 0 0 / 0.85);
   backdrop-filter: blur(8px);
-  border: 2px solid var(--accent, #ffc72c);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   transform: translateX(calc(-100% - 40px));
   opacity: 0;
@@ -23,7 +22,7 @@
   opacity: 1;
 }
 .warning[data-kind='calcada'] {
-  --accent: #ff4d3d;
+  --accent: var(--red-500);
 }
 .warning.is-urgent {
   animation: warning-pulse 0.5s ease-in-out infinite alternate;
@@ -56,9 +55,8 @@
 .warning__title {
   font-size: 20px;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--accent, #ffc72c);
+  letter-spacing: -0.01em;
+  color: #fff;
 }
 .warning__hint {
   order: 2;
@@ -84,7 +82,7 @@
   display: block;
   height: 100%;
   width: calc(var(--fill, 1) * 100%);
-  background: var(--accent, #ffc72c);
+  background: var(--accent, var(--amber-500));
   transition: width 0.1s linear;
 }
 
@@ -155,7 +153,7 @@
 }
 
 .hud__stat[data-ending] {
-  color: var(--coral-400);
+  color: var(--red-400);
   animation: hud-pulse 1s ease-in-out infinite;
 }
 
@@ -189,16 +187,15 @@
   flex: none;
   padding: 0.2em 0.6em;
   border-radius: var(--r-full);
-  background: var(--amber-500);
-  color: var(--ink-900);
-  font-size: 0.68em;
+  background: var(--green-500);
+  color: #fff;
+  font-size: 0.7em;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .hud__job[data-phase='entrega'] .hud__job-phase {
-  background: var(--coral-500);
+  background: #fff;
+  color: #000;
 }
 
 .hud__job-dest {
@@ -225,14 +222,14 @@
 }
 
 .hud__job-late {
-  color: var(--coral-400);
+  color: var(--red-400);
   font-size: 0.8em;
   font-weight: 700;
 }
 
 .hud__job-pay {
   margin-left: auto;
-  color: var(--lime-500);
+  color: var(--green-500);
   font-size: 1.1em;
   font-weight: 700;
 }
@@ -251,12 +248,12 @@
 
 .hud__job[data-heat='hot'] .hud__job-time,
 .hud__job[data-heat='late'] .hud__job-time {
-  color: var(--coral-500);
+  color: var(--red-500);
   animation: hud-pulse 0.9s ease-in-out infinite;
 }
 
 .hud__job[data-heat='hot'] .bar i {
-  background: var(--coral-500);
+  background: var(--red-500);
 }
 
 .hud__job[data-heat='late'] {
@@ -285,8 +282,8 @@
   width: 4.3em;
   height: 4.3em;
   border-radius: 0.8em;
-  background: var(--lime-500);
-  color: var(--ink-900);
+  background: var(--green-500);
+  color: var(--on-brand);
 }
 
 .hud__nav-arrow span {
@@ -378,12 +375,12 @@
 }
 
 .hud__speed-arc {
-  stroke: var(--lime-500);
+  stroke: var(--green-500);
   transition: stroke var(--base) linear;
 }
 
 .hud__speed[data-fast] .hud__speed-arc {
-  stroke: var(--coral-500);
+  stroke: var(--red-500);
 }
 
 .hud__speed-value {
@@ -461,6 +458,6 @@
   border-radius: 999px;
   font-weight: 700;
   font-size: 14px;
-  color: #12131a;
-  background: #c8ff2e;
+  color: #fff;
+  background: #000;
 }

@@ -31,6 +31,8 @@ import { createHud } from './ui/hud.js';
 import { createWarning } from './ui/warning.js';
 import { createTutorial } from './ui/tutorial.js';
 import { createScreens } from './ui/screens.js';
+import { createEffects } from './render/effects.js';
+import { createAudio } from './audio/audio.js';
 
 const canvas = document.getElementById('jogo');
 const params = new URLSearchParams(location.search);
@@ -91,6 +93,13 @@ const hud = createHud(ui);
 const warning = createWarning(ui);
 const tutorial = createTutorial(ui);
 const markers = createMarkersView({ scene: stage.scene });
+const effects = createEffects({ scene: stage.scene, bike });
+const audio = createAudio();
+for (const type of ['pointerdown', 'keydown']) addEventListener(type, audio.unlock);
+events.on('offer:new', () => sim.phase === 'turno' && audio.play('offer'));
+events.on('job:pickup', () => audio.play('notify'));
+events.on('job:delivered', () => audio.play('money'));
+events.on('job:cancelled', () => audio.play('cancel'));
 const phone = createPhone(ui, { onAccept: (id) => jobs.accept(id, bike), onDecline: (id) => jobs.decline(id) });
 events.on('job:pickup', ({ job }) => phone.notify(copy.notify.pickup(job.offer.customer.name)));
 events.on('job:delivered', ({ pay, tip, lateBy }) => {
@@ -105,6 +114,9 @@ events.on('fine', ({ kind, amount }) => phone.notify(fineNotice[kind](amount)));
 events.on('crash', ({ relSpeed }) => {
   sim.phase = 'acidente'; // a simulação para; o efeito roda e só depois vem a tela
   bikeView.crash(relSpeed);
+  chase.shake(1);
+  effects.sparks();
+  audio.play('crash');
   warning.show(null);
   phone.close();
   hud.flash('batida');
@@ -139,7 +151,7 @@ else if (!debugMap) screens.show('menu');
 function startBot() {
   const badge = document.createElement('div');
   badge.className = 'ui bot-badge';
-  badge.textContent = `🤖 Robô · ${botProfile}`;
+  badge.textContent = `Robô · ${botProfile}`;
   ui.append(badge);
   // Diário no console (F12): o que aconteceu e onde, para caçar problemas enquanto o robô joga.
   const where = () => ({ x: Math.round(bike.x), z: Math.round(bike.z), kmh: Math.round(bike.speed * 3.6), via: bike.road?.edge, limite: pilot.limitedBy });
@@ -165,6 +177,7 @@ function resume() {
   loop.timeScale = 1;
 }
 input.onAction((action) => {
+  if (action === 'mute') return phone.notify(copy.notify.sound(audio.toggleMute()));
   if (sim.phase !== 'turno') return;
   if (action === 'phone') return phone.toggle();
   if (action !== 'pause') return;
@@ -172,16 +185,28 @@ input.onAction((action) => {
   loop.timeScale = 0;
   screens.show('pausa');
 });
-events.on('bump', () => hud.flash('batida'));
-events.on('fine', () => hud.flash('radar'));
+events.on('bump', ({ speed }) => {
+  hud.flash('batida');
+  effects.sparks();
+  audio.play('bump');
+  chase.shake(Math.min(1, speed / 12));
+});
+events.on('fine', () => {
+  hud.flash('radar');
+  audio.play('fine');
+});
 events.on('damage', ({ amount }) => phone.notify(copy.notify.repair(amount)));
 
-/** Aviso do alto da tela: contador da calçada tem prioridade sobre o radar à frente. */
+/** Aviso do alto da tela: contador da calçada tem prioridade sobre o radar à frente. Cada aviso novo apita. */
+let lastAlert = null;
 function updateWarning() {
+  const camera = rules.cameraAhead();
+  const alert = rules.sidewalkLeft !== null ? `calcada${Math.ceil(rules.sidewalkLeft)}` : camera ? `radar${camera.id}` : null;
+  if (alert && alert !== lastAlert) audio.play('beep');
+  lastAlert = alert;
   if (rules.sidewalkLeft !== null) {
     return warning.show('calcada', rules.sidewalkLeft, rules.sidewalkLeft / config.rules.sidewalkGrace);
   }
-  const camera = rules.cameraAhead();
   if (camera) return warning.show('radar', camera.distance, camera.distance / config.rules.cameraWarnDistance);
   warning.show(null);
 }
@@ -196,6 +221,24 @@ function debugPose(text) {
   const [x, z, distance, tilt = 0, turn = 0] = text.split(',').map(Number);
   const radians = (degrees) => (Math.max(degrees, 0.03) * Math.PI) / 180;
   return { x, z, distance, tilt: radians(tilt), turn: (turn * Math.PI) / 180 };
+}
+
+/** Se pilotando o quadro passar de ~30 ms por alguns segundos, baixa a qualidade (uma vez só). */
+const QUALITY = { slowFrame: 1 / 33, patience: 3 };
+let slowFor = 0;
+function watchFrameRate(frameDt, riding) {
+  if (slowFor < 0 || !riding || document.hidden) return;
+  slowFor = frameDt > QUALITY.slowFrame ? slowFor + frameDt : Math.max(0, slowFor - frameDt);
+  if (slowFor < QUALITY.patience) return;
+  slowFor = -1;
+  stage.lowerQuality();
+  console.info('[jogo] quadros lentos: sombras desligadas e resolução reduzida');
+}
+
+/** Hora do dia: o turno vai do fim de tarde à noite; o menu fica no crepúsculo, com as luzes acesas. */
+function daylight() {
+  if (sim.phase === 'menu') return 0.6;
+  return 1 - shift.timeLeft / config.shift.duration;
 }
 
 const loop = createLoop({
@@ -220,17 +263,26 @@ const loop = createLoop({
   render(alpha, frameDt) {
     const riding = (sim.phase === 'turno' || sim.phase === 'acidente') && !debugMap;
     const view = riding ? chase : aerial;
+    watchFrameRate(frameDt, riding);
     view.update(frameDt);
     bikeView.update(frameDt);
     trafficView.update();
     signalsView.update();
-    markers.update(jobs.active?.target, sim.time);
+    const running = loop.timeScale > 0;
+    effects.update(frameDt * loop.timeScale, sim.phase === 'turno');
+    const driver = sim.autopilot || pilot.active ? pilot.input : input.state;
+    audio.update({ speed: bike.speed, throttle: driver.throttle, horn: input.state.horn, riding: sim.phase === 'turno' && running });
+    markers.update(jobs.active?.target, sim.time, sim.phase === 'turno' ? jobs.active?.route : null);
     if (sim.phase === 'turno' && !debugMap) {
       hud.update(sim);
       updateWarning();
       phone.update(sim);
     }
-    stage.render(view.camera);
+    stage.setDaylight(daylight(), riding ? 1 : 1.4); // do alto do menu, a névoa normal apagaria as janelas de longe
+    cityView.setNight(stage.night);
+    trafficView.setNight(stage.night);
+    bikeView.setNight(stage.night);
+    stage.render(view.camera, riding ? bike : null);
   },
 });
 loop.start();
@@ -247,6 +299,7 @@ window.__game = {
   view: { stage, cityView, aerial, chase, bikeView },
   start: () => shift.start(),
   phone,
+  audio,
   /** Liga ou desliga o piloto automático: ligado, ele faz sozinho a corrida ativa. */
   autopilot(on) {
     sim.autopilot = on;

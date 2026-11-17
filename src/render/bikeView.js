@@ -5,7 +5,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { createCrashView } from './crashView.js';
 
 const LOOK = {
-  brand: 0xc8ff2e, // baú do Rapidão
+  brand: 0x06c167, // baú do Rapidão
   body: 0xff5a4e,
   dark: 0x1b1d26,
   metal: 0x9aa0ad,
@@ -24,8 +24,15 @@ export function createBikeView({ scene, bike }) {
 
   const wheels = buildBike(tilt);
   let rider = null;
-  loadRider(tilt, (model) => (rider = model));
+  loadRider(tilt, (model) => {
+    rider = model;
+    root.traverse((mesh) => (mesh.castShadow = true));
+  });
   const crash = createCrashView({ root, tilt, getRider: () => rider });
+  const headlight = new THREE.SpotLight(0xfff1d6, 0, 45, 0.55, 0.6, 1);
+  headlight.position.set(0.6, 1, 0);
+  headlight.target.position.set(14, 0, 0);
+  root.add(headlight, headlight.target);
   let crashed = false;
 
   return {
@@ -34,6 +41,10 @@ export function createBikeView({ scene, bike }) {
     crash(speed) {
       crashed = true;
       crash.start(speed);
+    },
+    /** O farol só ilumina à noite (a luz fica sempre na cena: ligar e desligar recompilaria os materiais). */
+    setNight(k) {
+      headlight.intensity = k * 60;
     },
     update(dt) {
       if (crashed) return crash.update(dt);
