@@ -18,6 +18,10 @@ import { createBike } from './sim/bike.js';
 import { createAutopilot } from './sim/autopilot.js';
 import { createEconomy } from './sim/economy.js';
 import { createJobs } from './sim/jobs.js';
+import { createSignals } from './sim/signals.js';
+import { createTraffic } from './sim/traffic.js';
+import { createRules } from './sim/rules.js';
+import { createTrafficView, createSignalsView } from './render/trafficView.js';
 import { nextManeuver } from './sim/navigation.js';
 import { createMarkersView } from './render/markersView.js';
 import { createPhone } from './ui/phone/phone.js';
@@ -41,8 +45,11 @@ const spawn = { ...graph.pointOnEdge(home.edge, home.t, home.side * config.city.
 const bike = createBike(config.bike, { city, graph }, spawn);
 const economy = createEconomy(config.economy, events);
 const jobs = createJobs({ city, graph, rng: rng.fork('ofertas'), events, economy, config: config.jobs });
+const signals = createSignals(city, config.signals);
+const traffic = createTraffic({ city, graph, signals, rng: rng.fork('trânsito'), config: config.traffic });
+const rules = createRules({ city, signals, traffic, bike, economy, events, config: config.rules });
 const pilot = createAutopilot({ city, graph, bike, config: config.autopilot });
-const sim = { time: 0, phase: 'menu', city, graph, bike, pilot, economy, jobs, nav: null, autopilot: false };
+const sim = { time: 0, phase: 'menu', city, graph, bike, pilot, economy, jobs, signals, traffic, nav: null, autopilot: false };
 
 /** Com o piloto ligado, ele vai sozinho ao destino da corrida ativa (restaurante, depois cliente). */
 let pilotTarget = null;
@@ -57,7 +64,10 @@ function pilotInput(dt) {
 }
 
 const stage = createScene(canvas);
-const cityView = createCityView({ city, config: config.city, scene: stage.scene, assets: createAssets() });
+const assets = createAssets();
+const cityView = createCityView({ city, config: config.city, scene: stage.scene, assets });
+const trafficView = createTrafficView({ scene: stage.scene, assets, traffic, fleet: config.traffic.fleet });
+const signalsView = createSignalsView({ scene: stage.scene, city, signals });
 const aerial = createAerialCamera({
   size: city.size,
   focus: { x: config.city.centro.x * city.size, z: config.city.centro.z * city.size },
@@ -82,8 +92,18 @@ events.on('job:delivered', ({ pay, tip, lateBy }) => {
 events.on('job:cancelled', () => phone.notify(copy.notify.cancelled()));
 events.on('offer:expired', () => phone.notify(copy.notify.offerExpired()));
 events.on('fine', ({ kind, amount }) => {
+  if (kind === 'sinal') return phone.notify(copy.notify.fineRedLight(amount));
   const notice = copy.notify.fineWrongWay(amount);
   phone.notify(kind === 'calcada' ? { ...notice, text: 'Trânsito na calçada. O valor já saiu do seu saldo.' } : notice);
+});
+events.on('crash', () => {
+  sim.phase = 'fim';
+  hud.flash('batida');
+  hud.setVisible(false);
+  phone.close();
+  const { perHour } = economy.statement();
+  const stats = { days: economy.career.days + 1, deliveries: economy.career.deliveries + economy.day.deliveries, earned: economy.money, perHour };
+  screens.show('fim', { reason: 'acidente', stats });
 });
 const screens = createScreens(ui, { onStart: startShift, onResume: resume, onNextDay: startShift, onRestart: () => location.reload() });
 hud.setVisible(false);
@@ -143,6 +163,9 @@ const loop = createLoop({
     economy.chargeFuel(bike.distance - before);
     economy.tick(dt);
     jobs.step(dt, bike);
+    signals.step(dt);
+    traffic.step(dt, bike);
+    rules.step(dt);
     if (bike.wallHit) events.emit('bump', { kind: 'parede', speed: bike.wallHit });
     patrolSidewalk(dt);
   },
@@ -151,6 +174,8 @@ const loop = createLoop({
     const view = riding ? chase : aerial;
     view.update(frameDt);
     bikeView.update();
+    trafficView.update();
+    signalsView.update();
     markers.update(jobs.active?.target, sim.time);
     if (riding) {
       hud.update(sim);
@@ -194,6 +219,7 @@ window.__game = {
     offers: jobs.offers.length,
     job: jobs.active && { phase: jobs.active.phase, timeLeft: jobs.active.timeLeft, pay: jobs.active.offer.pay, remaining: jobs.active.route?.length },
     deliveries: economy.day.deliveries,
+    traffic: traffic.vehicles.filter((v) => v.active).length,
     rating: economy.rating,
     city: { nodes: city.nodes.length, edges: city.edges.length, pois: city.pois.length, lots: city.lots.length },
     view: { buildingsLoaded: cityView.loaded, drawCalls: stage.renderer.info.render.calls, triangles: stage.renderer.info.render.triangles },

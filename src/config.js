@@ -121,18 +121,39 @@ export const config = {
     poolSize: 50,
     spawnMin: 120,
     spawnMax: 260,
+    spawnTries: 3, // sorteios de via por passo
+    spawnClearance: 15, // m livres em volta do ponto de nascimento
     despawn: 320,
     speedVariance: 0.3, // ±30% do limite da via
-    runRedShare: 0.1,
-    laneChangeShare: 0.15,
-    followGap: 5,
-    mix: { carro: 0.62, moto: 0.2, onibus: 0.08, caminhao: 0.1 },
+    runRedShare: 0.1, // fração que fura o amarelo
+    followGap: 3, // m de folga para o veículo da frente
+    lookAhead: 40,
+    accel: 3,
+    brake: 4, // desaceleração com que planejam a parada
+    hardBrake: 9,
+    smoothing: 8, // quão rápido a posição desenhada segue a faixa (suaviza as curvas)
+    stuckTime: 10,
+    stuckMinDistance: 40,
+    fleet: [
+      { type: 'carro', model: 'cars/sedan', length: 4.0, width: 2.2 },
+      { type: 'carro', model: 'cars/sedan-sports', length: 4.0, width: 2.2 },
+      { type: 'carro', model: 'cars/hatchback-sports', length: 3.9, width: 2.2 },
+      { type: 'carro', model: 'cars/suv', length: 4.2, width: 2.3 },
+      { type: 'carro', model: 'cars/suv-luxury', length: 4.3, width: 2.3 },
+      { type: 'carro', model: 'cars/taxi', length: 4.2, width: 2.3 },
+      { type: 'carro', model: 'cars/van', length: 4.5, width: 2.4 },
+      { type: 'caminhao', model: 'cars/truck', length: 5.0, width: 2.4 },
+      { type: 'caminhao', model: 'cars/delivery', length: 5.8, width: 2.5 },
+    ],
   },
 
   rules: {
     crashSpeed: kmh(20), // velocidade relativa acima disso = fim de jogo
     fineRedLight: 60,
     fineWrongWay: 30,
+    fineMinSpeed: 2, // m/s: abaixo disso não conta como furar sinal nem contramão
+    wrongWayGrace: 1.5,
+    bumpKeep: 0.4, // fração da velocidade que sobra num toque leve em veículo
     fineSidewalk: 45,
     sidewalkGrace: 1.2, // segundos na calçada antes da multa
     sidewalkCooldown: 8, // intervalo mínimo entre multas de calçada
