@@ -126,7 +126,7 @@ Cada marco é uma issue no GitHub e termina com o jogo rodando, verificado confo
   *Verificado* no Chrome headless (renderização por software): console limpo, screenshots aéreo, oblíquos e na altura da rua, arrastar e zoom da câmera. *Não verificado:* taxa de quadros numa placa de vídeo de verdade — a cidade inteira à vista soma ~2,3 milhões de triângulos (~1,3 milhão na órbita do menu). Semáforos, postes e árvores de rua ficaram para o M4/M6.
 - [x] **M2 — Moto.** (#3) Controles, câmera 3ª pessoa, limite de rua/prédio, inclinação, `teleport`.
   *Aceite:* dá para atravessar a cidade de uma ponta à outra sem atravessar prédio; screenshot em 3ª pessoa legível.
-- [ ] **M3 — Celular, ofertas e GPS.** (#4) `jobs.js` com testes, celular com 3 telas, A*, marcadores, coleta/entrega, cronômetro, seta de próxima curva, `autopilot` e `acceptOffer`.
+- [x] **M3 — Celular, ofertas e GPS.** (#4) `jobs.js` com testes, celular com 3 telas, A*, marcadores, coleta/entrega, cronômetro, seta de próxima curva, `autopilot` e `acceptOffer`.
   *Aceite:* via `__game`: aceitar oferta, ligar autopilot, e o dinheiro em `state()` aumenta sozinho após a entrega.
 - [ ] **M4 — Trânsito e semáforos.** (#5) Veículos, semáforos, colisão ⇒ game over, multa por vermelho e contramão.
   *Aceite:* screenshot com trânsito parado num vermelho; teleporte para dentro de um carro em movimento dá game over; atravessar vermelho desconta dinheiro; fps ≥ 50 com o pool cheio.

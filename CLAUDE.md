@@ -86,12 +86,20 @@ createGraph(city) → {
   canTravel(edgeId, fromNodeId) → boolean,
   otherEnd(edgeId, nodeId) → nodeId,
   pointOnEdge(edgeId, t, lateral = 0, out?) → { x, z },         // lateral positivo = direita de a→b
+  projectOnEdge(edgeId, x, z, out?) → { t, dist },              // ponto do eixo daquela via mais próximo de (x, z)
+  nearbyEdges(edgeId) → [edgeId],                               // as outras vias que saem dos mesmos dois cruzamentos
 }
 
 // sim/bike.js
 createBike(config.bike, graph, spawn: {x,z,heading}) → {
   x, z, heading, speed, lean, steer, radius, road /* último nearestEdge */, distance /* m rodados */,
   step(inputState, dt), reset(spawn),
+}
+
+// sim/autopilot.js   segue uma rota pela faixa da direita devolvendo o mesmo inputState do teclado
+createAutopilot({ city, graph, bike, config: config.autopilot }) → {
+  active, arrived, wanted /* m/s que ele tenta manter */, input,
+  follow(route /* de graph.route */), goTo({ edge, t }) → boolean, stop(), step(dt) → inputState,
 }
 
 // sim/signals.js
@@ -147,7 +155,7 @@ Precisa mudar o contrato? Mude aqui no mesmo commit e avise no relatório final.
 ## Como verificar sem um humano jogando
 
 `window.__game` (sempre disponível) expõe `sim`, `config`, `events`, `loop`, `view` (`stage`, `cityView`, `aerial`), e:
-`state()` (resumo JSON), `teleport(nodeId)`, `autopilot(true|false)`, `setTimeScale(n)`, `acceptOffer(i)`, `loop.advance(nPassos)`.
+`state()` (resumo JSON), `teleport(nodeId)`, `goTo(poiId)`, `autopilot(true|false)`, `setTimeScale(n)`, `acceptOffer(i)`, `loop.advance(nPassos)`.
 
 `?debug=mapa` abre a vista aérea com arrastar e zoom; `&cam=x,z,distância,inclinação,giro` (graus) fixa a câmera para screenshots.
 `state().view.buildingsLoaded` avisa quando os modelos terminaram de carregar.

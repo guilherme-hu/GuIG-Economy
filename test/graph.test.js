@@ -146,3 +146,16 @@ function slowShortest(from, to) {
   const viaB = last.oneWay ? Infinity : cost[last.b] + (1 - to.t) * last.length;
   return Math.min(viaA, viaB);
 }
+
+test('grafo: projectOnEdge e nearbyEdges', () => {
+  for (const edge of city.edges) {
+    const p = graph.pointOnEdge(edge.id, 0.25, -3);
+    const found = graph.projectOnEdge(edge.id, p.x, p.z);
+    assert.ok(Math.abs(found.t - 0.25) < 1e-9 && Math.abs(found.dist - 3) < 1e-9);
+    const expected = new Set([...city.nodes[edge.a].edges, ...city.nodes[edge.b].edges]);
+    expected.delete(edge.id);
+    assert.deepEqual([...graph.nearbyEdges(edge.id)].sort((x, y) => x - y), [...expected].sort((x, y) => x - y));
+  }
+  const out = {};
+  assert.equal(graph.projectOnEdge(0, 0, 0, out), out);
+});

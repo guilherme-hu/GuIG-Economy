@@ -79,6 +79,19 @@ export function createGraph(city) {
     return out;
   }
 
+  /** Ponto do eixo da via mais próximo de (x, z): posição `t` nela e distância. */
+  function projectOnEdge(edgeId, x, z, out = {}) {
+    const a = nodes[edges[edgeId].a];
+    const b = nodes[edges[edgeId].b];
+    out.t = closestT(x, z, a.x, a.z, b.x, b.z);
+    out.dist = Math.hypot(x - (a.x + (b.x - a.x) * out.t), z - (a.z + (b.z - a.z) * out.t));
+    return out;
+  }
+
+  // Para cada via, as outras que saem dos mesmos dois cruzamentos.
+  const neighbours = edges.map((edge) => [...new Set([...nodes[edge.a].edges, ...nodes[edge.b].edges])].filter((id) => id !== edge.id));
+  const nearbyEdges = (edgeId) => neighbours[edgeId];
+
   const canTravel = (edgeId, fromNodeId) => !edges[edgeId].oneWay || edges[edgeId].a === fromNodeId;
   const otherEnd = (edgeId, nodeId) => (edges[edgeId].a === nodeId ? edges[edgeId].b : edges[edgeId].a);
 
@@ -148,7 +161,7 @@ export function createGraph(city) {
     return { points: points.reverse(), steps: steps.reverse(), length: best };
   }
 
-  return { nearestEdge, route, canTravel, otherEnd, pointOnEdge };
+  return { nearestEdge, projectOnEdge, nearbyEdges, route, canTravel, otherEnd, pointOnEdge };
 }
 
 /** Fila de prioridade mínima (heap binário) de pares (id, prioridade). */

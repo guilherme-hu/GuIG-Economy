@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createBike } from '../src/sim/bike.js';
 import { config } from '../src/config.js';
+import { createRng } from '../src/core/rng.js';
+import { generateCity } from '../src/sim/city/generator.js';
+import { createGraph } from '../src/sim/city/graph.js';
 
 const DT = 1 / 60;
 
@@ -11,6 +14,7 @@ function straightRoad() {
   const graph = {
     nearestEdge: (x, z) => ({ edge: 0, t: Math.max(0, Math.min(1, x / 1000)), dist: Math.abs(z), side: Math.sign(z) || 1 }),
     pointOnEdge: (edge, t) => ({ x: t * 1000, z: 0 }),
+    nearbyEdges: () => [],
   };
   return { city, graph };
 }
@@ -80,4 +84,65 @@ test('congelada após acidente, ignora o acelerador', () => {
   bike.frozen = true;
   run(bike, { throttle: 1 }, 2);
   assert.equal(bike.speed, 0);
+});
+
+// ---- na cidade de verdade
+
+const city = generateCity(config.city, createRng(config.seed).fork('cidade'));
+const graph = createGraph(city);
+const still = { throttle: 0, steer: 0, brake: false, horn: false };
+
+test('todo ponto de asfalto é chão livre, inclusive na boca das pontes e nos cruzamentos', () => {
+  const bike = createBike(config.bike, { city, graph }, { x: 0, z: 0, heading: 0 });
+  for (const edge of city.edges) {
+    const reach = edge.halfWidth - (edge.bridge ? 0 : 0.05);
+    for (let s = 0; s <= edge.length; s += 1.5) {
+      for (const lateral of [-reach, -reach / 2, 0, reach / 2, reach]) {
+        // Na ponte a moto só cabe até o guarda-corpo; fora dela, o asfalto inteiro tem de valer.
+        if (edge.bridge && Math.abs(lateral) > edge.halfWidth + config.bike.bridgeMargin - config.bike.radius) continue;
+        const spot = graph.pointOnEdge(edge.id, s / edge.length, lateral);
+        bike.reset({ ...spot, heading: 0 });
+        bike.step(still, DT);
+        const moved = Math.hypot(bike.x - spot.x, bike.z - spot.z);
+        assert.ok(moved < 1e-9, `via ${edge.id} (${edge.kind}) a ${s.toFixed(1)} m, ${lateral.toFixed(1)} m do eixo: empurrada ${moved.toFixed(2)} m`);
+      }
+    }
+  }
+});
+
+test('passar pela boca de uma ponte, na faixa do lado dela, não bate em parede invisível', () => {
+  let passes = 0;
+  for (const bridge of city.edges.filter((edge) => edge.bridge)) {
+    for (const headId of [bridge.a, bridge.b]) {
+      const head = city.nodes[headId];
+      const far = city.nodes[graph.otherEnd(bridge.id, headId)];
+      const arms = head.edges.filter((id) => id !== bridge.id).map((id) => {
+        const edge = city.edges[id];
+        const sign = edge.b === headId ? 1 : -1; // sentido de quem chega no cruzamento
+        return { id, edge, dir: { x: edge.dir.x * sign, z: edge.dir.z * sign } };
+      });
+      for (const arm of arms) {
+        // Só vale para quem segue em frente: precisa existir outra via saindo quase na mesma direção.
+        const goesOn = arms.some((other) => other !== arm && -(other.dir.x * arm.dir.x + other.dir.z * arm.dir.z) > 0.94);
+        if (!goesOn) continue;
+        const { dir } = arm;
+        const right = { x: -dir.z, z: dir.x };
+        const bridgeSide = Math.sign((far.x - head.x) * right.x + (far.z - head.z) * right.z) || 1;
+        const lateral = bridgeSide * arm.edge.halfWidth * 0.75;
+        const start = { x: head.x - dir.x * 25 + right.x * lateral, z: head.z - dir.z * 25 + right.z * lateral, heading: Math.atan2(dir.z, dir.x) };
+        const bike = createBike(config.bike, { city, graph }, start);
+        bike.speed = 10;
+        // Vai até 6 m depois do centro do cruzamento, já do outro lado da boca da ponte.
+        while ((bike.x - head.x) * dir.x + (bike.z - head.z) * dir.z < 6) {
+          const before = { x: bike.x, z: bike.z };
+          bike.step({ ...still, throttle: 0.3 }, DT);
+          const jump = Math.hypot(bike.x - before.x, bike.z - before.z);
+          assert.equal(bike.wallHit, 0, `bateu passando pela ponte ${bridge.id}, na via ${arm.id}`);
+          assert.ok(jump < 0.5, `a moto foi arrastada ${jump.toFixed(2)} m de uma vez passando pela ponte ${bridge.id}`);
+        }
+        passes++;
+      }
+    }
+  }
+  assert.ok(passes >= 4, `${passes} passagens testadas`);
 });

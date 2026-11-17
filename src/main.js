@@ -15,7 +15,13 @@ import { createCityView } from './render/cityView.js';
 import { createAerialCamera, createChaseCamera } from './render/camera.js';
 import { createBikeView } from './render/bikeView.js';
 import { createBike } from './sim/bike.js';
+import { createAutopilot } from './sim/autopilot.js';
 import { createEconomy } from './sim/economy.js';
+import { createJobs } from './sim/jobs.js';
+import { nextManeuver } from './sim/navigation.js';
+import { createMarkersView } from './render/markersView.js';
+import { createPhone } from './ui/phone/phone.js';
+import { copy } from './ui/copy.js';
 import { createHud } from './ui/hud.js';
 import { createScreens } from './ui/screens.js';
 
@@ -34,7 +40,21 @@ const homeDir = city.edges[home.edge].dir;
 const spawn = { ...graph.pointOnEdge(home.edge, home.t, home.side * config.city.street.laneWidth * 0.5), heading: Math.atan2(homeDir.z, homeDir.x) };
 const bike = createBike(config.bike, { city, graph }, spawn);
 const economy = createEconomy(config.economy, events);
-const sim = { time: 0, phase: 'menu', city, graph, bike, economy };
+const jobs = createJobs({ city, graph, rng: rng.fork('ofertas'), events, economy, config: config.jobs });
+const pilot = createAutopilot({ city, graph, bike, config: config.autopilot });
+const sim = { time: 0, phase: 'menu', city, graph, bike, pilot, economy, jobs, nav: null, autopilot: false };
+
+/** Com o piloto ligado, ele vai sozinho ao destino da corrida ativa (restaurante, depois cliente). */
+let pilotTarget = null;
+function pilotInput(dt) {
+  const target = jobs.active?.target ?? null;
+  if (target !== pilotTarget) {
+    pilotTarget = target;
+    if (target) pilot.goTo(target);
+    else pilot.stop();
+  }
+  return pilot.step(dt);
+}
 
 const stage = createScene(canvas);
 const cityView = createCityView({ city, config: config.city, scene: stage.scene, assets: createAssets() });
@@ -51,6 +71,20 @@ stage.onResize(chase.resize);
 
 const ui = document.getElementById('ui');
 const hud = createHud(ui);
+const markers = createMarkersView({ scene: stage.scene });
+const phone = createPhone(ui, { onAccept: (id) => jobs.accept(id, bike), onDecline: (id) => jobs.decline(id) });
+events.on('job:pickup', ({ job }) => phone.notify(copy.notify.pickup(job.offer.customer.name)));
+events.on('job:delivered', ({ pay, tip, lateBy }) => {
+  phone.notify(copy.notify.payment(pay));
+  if (tip > 0) phone.notify(copy.notify.tip(tip));
+  if (lateBy > 0) phone.notify(copy.notify.late(Math.round(lateBy)));
+});
+events.on('job:cancelled', () => phone.notify(copy.notify.cancelled()));
+events.on('offer:expired', () => phone.notify(copy.notify.offerExpired()));
+events.on('fine', ({ kind, amount }) => {
+  const notice = copy.notify.fineWrongWay(amount);
+  phone.notify(kind === 'calcada' ? { ...notice, text: 'Trânsito na calçada. O valor já saiu do seu saldo.' } : notice);
+});
 const screens = createScreens(ui, { onStart: startShift, onResume: resume, onNextDay: startShift, onRestart: () => location.reload() });
 hud.setVisible(false);
 if (!debugMap) screens.show('menu');
@@ -66,7 +100,9 @@ function resume() {
   loop.timeScale = 1;
 }
 input.onAction((action) => {
-  if (action !== 'pause' || sim.phase !== 'turno') return;
+  if (sim.phase !== 'turno') return;
+  if (action === 'phone') return phone.toggle();
+  if (action !== 'pause') return;
   if (screens.current === 'pausa') return resume();
   loop.timeScale = 0;
   screens.show('pausa');
@@ -101,8 +137,12 @@ const loop = createLoop({
   step(dt) {
     sim.time += dt;
     if (sim.phase !== 'turno') return;
-    bike.step(input.state, dt);
+    const before = bike.distance;
+    sim.nav = nextManeuver(jobs.active?.route, city);
+    bike.step(sim.autopilot ? pilotInput(dt) : pilot.active ? pilot.step(dt) : input.state, dt);
+    economy.chargeFuel(bike.distance - before);
     economy.tick(dt);
+    jobs.step(dt, bike);
     if (bike.wallHit) events.emit('bump', { kind: 'parede', speed: bike.wallHit });
     patrolSidewalk(dt);
   },
@@ -111,7 +151,11 @@ const loop = createLoop({
     const view = riding ? chase : aerial;
     view.update(frameDt);
     bikeView.update();
-    if (riding) hud.update(sim);
+    markers.update(jobs.active?.target, sim.time);
+    if (riding) {
+      hud.update(sim);
+      phone.update(sim);
+    }
     stage.render(view.camera);
   },
 });
@@ -127,6 +171,14 @@ window.__game = {
   loop,
   view: { stage, cityView, aerial, chase, bikeView },
   start: startShift,
+  phone,
+  /** Liga ou desliga o piloto automático: ligado, ele faz sozinho a corrida ativa. */
+  autopilot(on) {
+    sim.autopilot = on;
+    pilotTarget = null;
+    if (!on) pilot.stop();
+  },
+  acceptOffer: (i) => jobs.accept(jobs.offers[i]?.id, bike),
   /** Põe a moto no cruzamento `nodeId`, parada. */
   teleport(nodeId) {
     const node = city.nodes[nodeId];
@@ -137,10 +189,16 @@ window.__game = {
     time: sim.time,
     phase: sim.phase,
     bike: { x: bike.x, z: bike.z, heading: bike.heading, kmh: bike.speed * 3.6, road: bike.road?.edge },
+    autopilot: { active: pilot.active, arrived: pilot.arrived },
     money: economy.money,
+    offers: jobs.offers.length,
+    job: jobs.active && { phase: jobs.active.phase, timeLeft: jobs.active.timeLeft, pay: jobs.active.offer.pay, remaining: jobs.active.route?.length },
+    deliveries: economy.day.deliveries,
     rating: economy.rating,
     city: { nodes: city.nodes.length, edges: city.edges.length, pois: city.pois.length, lots: city.lots.length },
     view: { buildingsLoaded: cityView.loaded, drawCalls: stage.renderer.info.render.calls, triangles: stage.renderer.info.render.triangles },
   }),
   setTimeScale: (n) => (loop.timeScale = n),
+  /** Piloto automático até o POI `poiId`. Devolve false se não há rota. */
+  goTo: (poiId) => pilot.goTo({ edge: city.pois[poiId].edge, t: city.pois[poiId].t }),
 };
