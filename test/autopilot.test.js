@@ -121,6 +121,32 @@ test('piloto no trânsito: para antes da linha no vermelho; o perfil "nunca" fur
   }
 });
 
+test('piloto no trânsito: decidiu parar no amarelo, para mesmo; quem tem pressa acelera', () => {
+  for (const stopOnYellow of [true, false]) {
+    const { bike, target, lineAt, along } = approach();
+    let yellowSince = null; // o sinal fica amarelo quando a moto está a 30 m da linha, e vermelho 3 s depois
+    let clock = 0;
+    const signals = {
+      stateFor: () => {
+        if (yellowSince === null) return 'verde';
+        return clock - yellowSince < config.signals.yellow ? 'amarelo' : 'vermelho';
+      },
+    };
+    const pilot = createAutopilot({ city, graph, bike, config: { ...config.autopilot, stopOnYellow }, signals, traffic: { vehicles: [] } });
+    pilot.goTo(target);
+    let crossedOnRed = false;
+    for (let i = 0; i < 60 * 25; i++) {
+      clock += DT;
+      if (yellowSince === null && along() > lineAt - 30) yellowSince = clock;
+      const before = along();
+      bike.step(pilot.step(DT), DT);
+      if (before < lineAt && along() >= lineAt && signals.stateFor() === 'vermelho') crossedOnRed = true;
+    }
+    if (stopOnYellow) assert.ok(!crossedOnRed && along() < lineAt, 'entrou no cruzamento no vermelho depois de decidir parar');
+    else assert.ok(along() > lineAt || pilot.arrived, 'o apressado acelera no amarelo');
+  }
+});
+
 test('piloto no trânsito: freia atrás de um carro parado sem encostar', () => {
   const { edge, bike, target } = approach();
   const at = graph.pointOnEdge(edge.id, 0.6, edge.halfWidth / 2);
