@@ -185,9 +185,9 @@ export const config = {
     offerCount: 3,
     offerLifetime: 12,
     minPay: 7.5,
-    payPerKm: 1.5,
+    payPerKm: 2.5, // o iFood paga R$ 1,50; usamos os R$ 2,50 reivindicados na greve de 2025, para a longa valer a pena
     freeKm: 4, // km reais cobertos pelo mínimo
-    kmScale: 2,
+    kmScale: 3,
     bands: [
       { name: 'curta', share: 0.45, min: 300, max: 900 },
       { name: 'media', share: 0.35, min: 900, max: 1800 },
@@ -201,9 +201,9 @@ export const config = {
     pickupStopTime: 1.5,
     stopSpeed: kmh(5),
     stopRadius: 9, // cobre o marcador do outro lado de uma avenida larga
-    deadlineBuffer: 20,
-    refSpeedShort: kmh(35), // corridas curtas: prazo folgado
-    refSpeedLong: kmh(55), // corridas longas: prazo apertado
+    deadlineBuffer: 30,
+    refSpeedShort: kmh(28), // corridas curtas: prazo folgado
+    refSpeedLong: kmh(40), // corridas longas: prazo apertado
     refDistanceShort: 600,
     refDistanceLong: 2600,
     maxTipShare: 0.3,
@@ -221,12 +221,12 @@ export const config = {
     ratingCancelled: 0.5,
     acceptanceFloor: 0.5, // abaixo disso o app esconde as ofertas boas
     acceptanceWindow: 10,
-    fuelPerKm: 0.4, // por km do jogo: ~R$ 0,20 por km real (gasolina + manutenção) × jobs.kmScale
+    fuelPerKm: 0.6, // por km do jogo: ~R$ 0,20 por km real (gasolina + manutenção) × jobs.kmScale
     bikeRentPerDay: 25, // aluguel de moto para entregador: a partir de R$ 175 por semana (Mottu) ÷ 7
     // R$/hora do extrato: um turno (shift.duration segundos de jogo) representa uma jornada de shiftHours horas
-    // reais. Entregadores trabalham em média menos de 4 h por dia (Cebrap); com 3 h, quem joga rápido fatura
-    // ~R$ 29 por hora, o mesmo bruto médio real (R$ 28–31/h). 1 min de jogo ≈ 15 min reais.
-    shiftHours: 3,
+    // reais. Entregadores trabalham em média menos de 4 h por dia (Cebrap): 15 min de jogo = 3 h 45 min,
+    // e 1 min de jogo ≈ 15 min reais. Assim o bruto por hora de quem joga bem (R$ 25–33/h) bate com o real (R$ 28–31/h).
+    shiftHours: 3.75,
     get shiftDuration() {
       return config.shift.duration;
     },
@@ -237,9 +237,9 @@ export const config = {
   },
 
   shift: {
-    duration: 720,
-    billsDay1: 50.6, // o salário mínimo de 2025 (R$ 1.518) dividido pelos 30 dias do mês
-    billsGrowth: 0.05, // as contas apertam a cada dia
+    duration: 900,
+    billsDay1: 46.8, // salário mínimo líquido de 2025 (R$ 1.518 − 7,5% de INSS = R$ 1.404,15) ÷ 30 dias
+    billsGrowth: 0.03, // as contas apertam a cada dia
     missedDaysToLose: 2,
   },
 };

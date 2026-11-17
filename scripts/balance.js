@@ -71,7 +71,7 @@ function playDays(choose, pace) {
 const money = (v) => v.toFixed(2).padStart(8);
 console.log(`${days} dias · turno de ${config.shift.duration / 60} min = ${config.economy.shiftHours} h reais · contas do dia 1: R$ ${config.shift.billsDay1}`);
 console.log('estratégia  ritmo  entregas atras.  bruto  gorjeta  combust.  aluguel   líquido   contas  R$/h  pagou');
-for (const pace of [1.4, 1, 0.65]) {
+for (const pace of (process.argv[3] ?? "1.4,1,0.8,0.65").split(",").map(Number)) {
   for (const [name, choose] of Object.entries(strategies)) {
     for (const [i, r] of playDays(choose, pace).entries()) {
       if (r.over) {
