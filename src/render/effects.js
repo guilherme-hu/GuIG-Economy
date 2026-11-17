@@ -6,6 +6,7 @@ import * as THREE from 'three';
 
 const POOL = 160;
 const SMOKE = { color: 0xd8d4cc, life: 1.1, size: 1.4, grow: 2.2, rate: 40, minSpeed: 6, decel: 15, lean: 0.5, leanSpeed: 14 };
+const BURNOUT = { color: 0xffffff, life: 1.35, size: 0.25, grow: 3.5, rate: 24, fade: 0.58 };
 const SPARK = { color: 0xffb04a, life: 0.45, size: 0.35, count: 18, speed: 7 };
 
 const SHADER = {
@@ -53,7 +54,7 @@ export function createEffects({ scene, bike }) {
     const p = parts[next];
     tint.setXYZ(next, ...color.setHex(kind.color).toArray());
     next = (next + 1) % POOL;
-    Object.assign(p, { age: 0, life: kind.life * (0.8 + Math.random() * 0.4), x, y, z, vx, vy, vz, size: kind.size, grow: kind.grow ?? 0, fade: kind === SMOKE ? 0.5 : 1 });
+    Object.assign(p, { age: 0, life: kind.life * (0.8 + Math.random() * 0.4), x, y, z, vx, vy, vz, size: kind.size, grow: kind.grow ?? 0, fade: kind.fade ?? (kind === SMOKE ? 0.5 : 1) });
   }
 
   function emitSmoke(dt) {
@@ -61,7 +62,19 @@ export function createEffects({ scene, bike }) {
     const decel = (lastSpeed - speed) / dt;
     lastSpeed = speed;
     const skidding = (speed > SMOKE.minSpeed && decel > SMOKE.decel) || (speed > SMOKE.leanSpeed && Math.abs(bike.lean) > SMOKE.lean);
-    if (!skidding) return;
+    if (bike.burnout) {
+      const dx = Math.cos(bike.heading);
+      const dz = Math.sin(bike.heading);
+      smokeDebt += BURNOUT.rate * dt;
+      for (; smokeDebt >= 1; smokeDebt--) {
+        const drift = (Math.random() - 0.5) * 0.6;
+        const back = 1.3 + Math.random();
+        emit(bike.x - dx * 0.65, 0.08, bike.z - dz * 0.65,
+          -dx * back - dz * drift, 0.45 + Math.random() * 0.4, -dz * back + dx * drift, BURNOUT);
+      }
+      return;
+    }
+    if (!skidding && !bike.rearLocked) return;
     smokeDebt += SMOKE.rate * dt;
     for (; smokeDebt >= 1; smokeDebt--) {
       const back = 0.7;

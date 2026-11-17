@@ -18,6 +18,10 @@ export function createBike(config, { city, graph }, spawn) {
     distance: 0, // metros rodados (combustível)
     wallHit: 0, // velocidade do impacto com parede neste passo (0 = nenhum)
     onSidewalk: false,
+    burnout: false,
+    rearLocked: false,
+    skid: 0,
+    slipAngle: 0,
     frozen: false, // true após acidente: ignora comandos
 
     reset(at) {
@@ -29,13 +33,22 @@ export function createBike(config, { city, graph }, spawn) {
       bike.steer = 0;
       bike.wallHit = 0;
       bike.frozen = false;
+      bike.burnout = false;
+      bike.rearLocked = false;
+      bike.skid = 0;
+      bike.slipAngle = 0;
       bike.road = graph.nearestEdge(bike.x, bike.z);
     },
 
     step(input, dt) {
       const control = bike.frozen ? IDLE : input;
       accelerate(control, dt);
+      bike.burnout = control.brake && control.throttle > 0 && bike.speed === 0;
       if (bike.onSidewalk) bike.speed = approach(bike.speed, clamp(bike.speed, -config.sidewalkSpeed, config.sidewalkSpeed), config.sidewalkBrake * dt);
+      const grip = config.skid;
+      const threshold = bike.rearLocked ? grip.releaseSpeed : grip.onsetSpeed;
+      bike.rearLocked = !bike.frozen && control.brake && bike.speed > threshold;
+      bike.skid = bike.rearLocked ? Math.min(1, bike.speed / grip.fullSpeed) : 0;
       turn(control, dt);
       move(dt);
       keepOnRoad();
@@ -63,14 +76,19 @@ export function createBike(config, { city, graph }, spawn) {
     // Parado não gira; rápido, a curva é limitada pela aceleração lateral.
     const rate = Math.min(config.steerRate * Math.min(1, v / config.steerFullSpeed), config.maxLateralAccel / Math.max(v, 0.01));
     const yaw = bike.steer * rate * Math.sign(bike.speed || 1);
-    bike.heading = wrapAngle(bike.heading + yaw * dt);
+    // A traseira abre para fora da curva enquanto o deslocamento conserva a direção.
+    const previousSlip = bike.slipAngle;
+    const targetSlip = config.skid.maxSlip * bike.steer * bike.skid;
+    bike.slipAngle = approach(previousSlip, targetSlip, config.skid.gripRecovery * dt);
+    bike.heading = wrapAngle(bike.heading + yaw * (1 - 0.7 * bike.skid) * dt + bike.slipAngle - previousSlip);
     const targetLean = clamp(Math.atan((v * yaw) / GRAVITY), -config.maxLean, config.maxLean);
     bike.lean = approach(bike.lean, targetLean, config.leanResponse * dt);
   }
 
   function move(dt) {
-    bike.x += Math.cos(bike.heading) * bike.speed * dt;
-    bike.z += Math.sin(bike.heading) * bike.speed * dt;
+    const travelHeading = bike.heading - bike.slipAngle;
+    bike.x += Math.cos(travelHeading) * bike.speed * dt;
+    bike.z += Math.sin(travelHeading) * bike.speed * dt;
     bike.distance += Math.abs(bike.speed) * dt;
   }
 

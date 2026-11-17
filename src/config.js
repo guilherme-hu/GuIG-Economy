@@ -70,6 +70,7 @@ export const config = {
     accel: 11, // ~0–60 km/h em 2 s
     brake: 11,
     hardBrake: 19,
+    skid: { onsetSpeed: 6, releaseSpeed: 1.5, fullSpeed: 15, maxSlip: 0.44, gripRecovery: 2.5 },
     drag: 0.35,
     steerRate: 2.4, // rad/s em baixa velocidade
     steerFullSpeed: 2, // abaixo disso a moto gira menos (parada não gira)

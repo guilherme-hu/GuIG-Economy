@@ -54,11 +54,40 @@ const CHASE = { back: 5.2, height: 2.3, ahead: 6, lookHeight: 1.1, follow: 5, fo
 const SHAKE = { amplitude: 0.45, decay: 1.6, fastKmh: 80, speedTrauma: 0.35 };
 
 /** Câmera em 3ª pessoa: atrás e acima da moto, com mola na direção e FOV que abre com a velocidade. */
-export function createChaseCamera({ bike, maxSpeed }) {
+export function createChaseCamera({ bike, maxSpeed, canvas }) {
   const camera = new THREE.PerspectiveCamera(CHASE.fov, 1, 0.3, CHASE.far);
   let heading = bike.heading;
   let trauma = 0;
   let clock = 0;
+  let orbitEnabled = false;
+  let pointer = null;
+  let yaw = 0;
+  let pitch = 0;
+  let blend = 0;
+  const elevation = Math.atan2(CHASE.height - CHASE.lookHeight, CHASE.back);
+  const radius = Math.hypot(CHASE.back, CHASE.height - CHASE.lookHeight);
+
+  function endDrag() {
+    if (pointer !== null && canvas.hasPointerCapture(pointer)) canvas.releasePointerCapture(pointer);
+    pointer = null;
+  }
+
+  canvas.addEventListener('pointerdown', (event) => {
+    if (!orbitEnabled || event.button !== 0 || !event.isPrimary) return;
+    pointer = event.pointerId;
+    canvas.setPointerCapture(pointer);
+  });
+  canvas.addEventListener('pointermove', (event) => {
+    if (pointer !== event.pointerId) return;
+    yaw = THREE.MathUtils.euclideanModulo(yaw + event.movementX * 0.006 + Math.PI, 2 * Math.PI) - Math.PI;
+    pitch = THREE.MathUtils.clamp(pitch + event.movementY * 0.005, -0.28, 0.95);
+  });
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    canvas.addEventListener(type, (event) => {
+      if (event.pointerId === pointer) endDrag();
+    });
+  }
+  window.addEventListener('blur', endDrag);
 
   return {
     camera,
@@ -67,7 +96,13 @@ export function createChaseCamera({ bike, maxSpeed }) {
       camera.updateProjectionMatrix();
     },
     /** Sem mola: usar depois de teleportar. */
+    setOrbit(enabled) {
+      orbitEnabled = enabled;
+      if (!enabled && pointer !== null) endDrag();
+    },
     snap() {
+      endDrag();
+      yaw = pitch = blend = 0;
       heading = bike.heading;
       trauma = 0;
     },
@@ -78,10 +113,19 @@ export function createChaseCamera({ bike, maxSpeed }) {
     update(dt) {
       const delta = Math.atan2(Math.sin(bike.heading - heading), Math.cos(bike.heading - heading));
       heading += delta * Math.min(1, CHASE.follow * dt);
-      const dx = Math.cos(heading);
-      const dz = Math.sin(heading);
-      camera.position.set(bike.x - dx * CHASE.back, CHASE.height, bike.z - dz * CHASE.back);
-      camera.lookAt(bike.x + dx * CHASE.ahead, CHASE.lookHeight, bike.z + dz * CHASE.ahead);
+      const smoothing = 1 - Math.exp(-12 * dt);
+      blend = THREE.MathUtils.lerp(blend, orbitEnabled ? 1 : 0, smoothing);
+      if (!orbitEnabled) {
+        yaw *= 1 - smoothing;
+        pitch *= 1 - smoothing;
+      }
+      const angle = heading + yaw;
+      const back = radius * Math.cos(elevation + pitch);
+      camera.position.set(bike.x - Math.cos(angle) * back,
+        CHASE.lookHeight + radius * Math.sin(elevation + pitch),
+        bike.z - Math.sin(angle) * back);
+      const ahead = CHASE.ahead * (1 - blend);
+      camera.lookAt(bike.x + Math.cos(heading) * ahead, CHASE.lookHeight, bike.z + Math.sin(heading) * ahead);
       clock += dt;
       trauma = Math.max(0, trauma - SHAKE.decay * dt);
       const fast = Math.max(0, (Math.abs(bike.speed) * 3.6 - SHAKE.fastKmh) / (maxSpeed * 3.6 - SHAKE.fastKmh));

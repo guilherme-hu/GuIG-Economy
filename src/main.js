@@ -85,7 +85,7 @@ const aerial = createAerialCamera({
   pose: debugPose(params.get('cam')),
 });
 const bikeView = createBikeView({ scene: stage.scene, bike });
-const chase = createChaseCamera({ bike, maxSpeed: config.bike.maxSpeed });
+const chase = createChaseCamera({ bike, canvas, maxSpeed: config.bike.maxSpeed });
 stage.onResize(chase.resize);
 
 const ui = document.getElementById('ui');
@@ -264,14 +264,15 @@ const loop = createLoop({
     const riding = (sim.phase === 'turno' || sim.phase === 'acidente') && !debugMap;
     const view = riding ? chase : aerial;
     watchFrameRate(frameDt, riding);
+    chase.setOrbit(riding && sim.phase === 'turno' && loop.timeScale > 0 && !phone.isOpen);
     view.update(frameDt);
-    bikeView.update(frameDt);
+    bikeView.update(frameDt, sim.phase === 'turno' && loop.timeScale > 0 && bike.burnout);
     trafficView.update();
     signalsView.update();
     const running = loop.timeScale > 0;
     effects.update(frameDt * loop.timeScale, sim.phase === 'turno');
     const driver = sim.autopilot || pilot.active ? pilot.input : input.state;
-    audio.update({ speed: bike.speed, throttle: driver.throttle, horn: input.state.horn, riding: sim.phase === 'turno' && running });
+    audio.update({ speed: bike.speed, skid: bike.skid, burnout: bike.burnout, throttle: driver.throttle, horn: input.state.horn, riding: sim.phase === 'turno' && running });
     markers.update(jobs.active?.target, sim.time, sim.phase === 'turno' ? jobs.active?.route : null);
     if (sim.phase === 'turno' && !debugMap) {
       hud.update(sim);
