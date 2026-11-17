@@ -151,7 +151,7 @@ else if (!debugMap) screens.show('menu');
 function startBot() {
   const badge = document.createElement('div');
   badge.className = 'ui bot-badge';
-  badge.textContent = `🤖 Robô · ${botProfile}`;
+  badge.textContent = `Robô · ${botProfile}`;
   ui.append(badge);
   // Diário no console (F12): o que aconteceu e onde, para caçar problemas enquanto o robô joga.
   const where = () => ({ x: Math.round(bike.x), z: Math.round(bike.z), kmh: Math.round(bike.speed * 3.6), via: bike.road?.edge, limite: pilot.limitedBy });

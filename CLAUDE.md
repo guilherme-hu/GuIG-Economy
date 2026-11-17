@@ -8,6 +8,7 @@ Publicado em https://guilherme-hu.github.io/GuIG-Economy/ com `npm run deploy` (
 
 - Vite + three.js, JavaScript puro (ES modules). Sem TypeScript, sem framework, sem engine de física.
 - UI (celular, HUD, menus) em HTML/CSS sobre o canvas. Nada de UI desenhada em WebGL.
+- Visual: paródia de app de entrega (preto, branco e verde #06C167, fonte Manrope em `public/assets/fonts/`). Na rua, cartões pretos; celular e telas cheias claros (classe `.light`, que inverte a escala de cinzas em `ui/tokens.css`). Textos sem emojis.
 - Modelos 3D: só os CC0 em `public/assets/models/` (Kenney). Som: sintetizado em WebAudio.
 - Testes: `node --test`. Dependências: só `three` e `vite`.
 - Todo texto do jogo em pt-BR. Código e comentários em pt-BR quando fizer sentido; identificadores em inglês.

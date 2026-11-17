@@ -1,76 +1,76 @@
 /*
- * Design tokens da interface. Identidade do Rapidão: lima vibrante sobre tinta quase-preta,
- * coral para multa/alerta. O baú da moto no 3D usa --lime-500 (#C8FF2E).
+ * Design tokens da interface. Identidade do Rapidão: paródia de app de entrega, preto, branco e verde.
+ * Na rua (HUD) os cartões são pretos; o celular e as telas cheias são claros (classe .light).
+ * O baú da moto no 3D usa --green-500 (#06C167).
  */
 @font-face {
-  font-family: 'Figtree';
-  src: url('/assets/fonts/figtree-latin-wght-normal.woff2') format('woff2-variations');
-  font-weight: 300 900;
+  font-family: 'Manrope';
+  src: url('/assets/fonts/manrope-latin-wght-normal.woff2') format('woff2-variations');
+  font-weight: 200 800;
   font-style: normal;
   font-display: swap;
 }
 
 :root {
-  /* Tinta (neutros frios, nunca preto puro) */
-  --ink-950: #0b0c11;
-  --ink-900: #12131a;
-  --ink-800: #1a1c26;
-  --ink-700: #242735;
-  --ink-600: #343849;
-  --ink-500: #50556b;
-  --ink-400: #7f859c;
-  --ink-300: #a9aec2;
-  --ink-200: #d3d6e2;
-  --ink-100: #eceef4;
-  --paper: #f5f6ee;
-  --paper-dim: #e4e6d8;
+  /* Neutros (escala do escuro para o claro) */
+  --ink-950: #000000;
+  --ink-900: #0f0f0f;
+  --ink-800: #1b1b1b;
+  --ink-700: #282828;
+  --ink-600: #3c3c3c;
+  --ink-500: #5e5e5e;
+  --ink-400: #8a8a8a;
+  --ink-300: #b4b4b4;
+  --ink-200: #dcdcdc;
+  --ink-100: #f3f3f3;
+  --paper: #ffffff;
+  --paper-dim: #f3f3f3;
 
   /* Marca */
-  --lime-300: #e3ff8f;
-  --lime-400: #d6ff5e;
-  --lime-500: #c8ff2e;
-  --lime-600: #a9e010;
-  --lime-700: #7ea800;
-  --lime-900: #2a3606;
+  --green-300: #9fe8c2;
+  --green-400: #2fd283;
+  --green-500: #06c167;
+  --green-600: #05a858;
+  --green-700: #037a40;
+  --green-900: #e7f8ef;
 
   /* Alerta / multa */
-  --coral-400: #ff7d73;
-  --coral-500: #ff5a4e;
-  --coral-600: #e63e32;
-  --coral-900: #3d1512;
+  --red-400: #ff7a75;
+  --red-500: #e5322d;
+  --red-600: #c4221d;
+  --red-900: #fdecec;
 
-  /* Atenção (prazo apertando, estrelas) */
-  --amber-400: #ffc94d;
-  --amber-500: #ffb627;
+  /* Atenção (prazo apertando, placa de radar) */
+  --amber-400: #ffc533;
+  --amber-500: #f6b100;
 
   /* Papéis */
-  --text: var(--ink-100);
+  --text: #ffffff;
   --text-dim: var(--ink-300);
   --text-faint: var(--ink-400);
-  --brand: var(--lime-500);
-  --on-brand: var(--ink-900);
-  --danger: var(--coral-500);
+  --brand: var(--green-500);
+  --on-brand: #ffffff;
+  --danger: var(--red-500);
   --warn: var(--amber-500);
 
-  /* Placa translúcida do HUD: legível sobre entardecer claro e sobre noite */
-  --plate: rgb(14 15 22 / 0.72);
-  --plate-strong: rgb(14 15 22 / 0.86);
-  --plate-border: rgb(255 255 255 / 0.1);
-  --plate-blur: blur(14px) saturate(1.3);
-  --hairline: rgb(255 255 255 / 0.08);
+  /* Cartão preto do HUD: legível sobre o entardecer claro e sobre a noite */
+  --plate: rgb(0 0 0 / 0.8);
+  --plate-strong: rgb(0 0 0 / 0.9);
+  --plate-border: rgb(255 255 255 / 0.08);
+  --plate-blur: blur(10px);
+  --hairline: rgb(255 255 255 / 0.1);
 
   /* Tipografia */
-  --font: 'Figtree', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+  --font: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
   /* Raios e sombras */
-  --r-sm: 0.375em;
-  --r-md: 0.625em;
-  --r-lg: 0.875em;
-  --r-xl: 1.25em;
+  --r-sm: 0.4em;
+  --r-md: 0.65em;
+  --r-lg: 0.9em;
+  --r-xl: 1.15em;
   --r-full: 999px;
-  --shadow-plate: 0 0.5em 1.5em rgb(0 0 0 / 0.28);
-  --shadow-pop: 0 1.5em 4em rgb(0 0 0 / 0.5), 0 0.25em 0.75em rgb(0 0 0 / 0.35);
+  --shadow-plate: 0 0.5em 1.5em rgb(0 0 0 / 0.3);
+  --shadow-pop: 0 1.2em 3.5em rgb(0 0 0 / 0.4), 0 0.2em 0.6em rgb(0 0 0 / 0.2);
 
   /* Movimento */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -81,6 +81,33 @@
 
   /* Escala da interface: 14px em 1366×768 → 20px em 1920×1080. Componentes medem em em. */
   --ui-size: clamp(13px, min(1.04vw, 1.85vh), 22px);
+}
+
+/*
+ * Superfície clara (celular, cartões das telas): a escala de neutros se inverte, então os componentes
+ * escritos para o escuro (fundo --ink-900, texto --ink-100) viram branco com texto preto sem CSS novo.
+ */
+.light {
+  --ink-950: #ffffff;
+  --ink-900: #ffffff;
+  --ink-800: #f3f3f3;
+  --ink-700: #e8e8e8;
+  --ink-600: #d6d6d6;
+  --ink-500: #a8a8a8;
+  --ink-400: #8a8a8a;
+  --ink-300: #6b6b6b;
+  --ink-200: #333333;
+  --ink-100: #000000;
+  --text: #000000;
+  --text-dim: #6b6b6b;
+  --text-faint: #8a8a8a;
+  --hairline: #e8e8e8;
+  --plate: #ffffff;
+  --plate-strong: #ffffff;
+  --plate-border: #e8e8e8;
+  --green-900: #e7f8ef;
+  --red-900: #fdecec;
+  color: var(--text);
 }
 
 /* Base compartilhada por HUD, celular e telas */
@@ -115,7 +142,7 @@
 }
 
 .ui button:focus-visible {
-  outline: 2px solid var(--lime-500);
+  outline: 2px solid var(--green-500);
   outline-offset: 2px;
 }
 
@@ -130,22 +157,36 @@
   align-items: center;
   justify-content: center;
   gap: 0.55em;
-  height: 2.7em;
-  padding: 0 1.1em;
-  border-radius: 0.85em;
+  height: 2.8em;
+  padding: 0 1.2em;
+  border-radius: 0.7em;
   font-size: 0.85em;
-  font-weight: 700;
+  font-weight: 800;
   white-space: nowrap;
   transition: background var(--fast) linear, transform var(--fast) var(--ease-out), opacity var(--fast) linear;
 }
 
 .ui .btn--brand {
-  background: var(--lime-500);
-  color: var(--ink-900);
+  background: var(--green-500);
+  color: var(--on-brand);
 }
 
 .ui .btn--brand:hover {
-  background: var(--lime-400);
+  background: var(--green-400);
+}
+
+.ui .btn--dark {
+  background: #000;
+  color: #fff;
+}
+
+.ui .btn--dark:hover {
+  background: #262626;
+}
+
+.ui .btn--block {
+  display: flex;
+  width: 100%;
 }
 
 .ui .btn--ghost {
@@ -166,10 +207,14 @@
   cursor: not-allowed;
 }
 
-.btn .kbd {
-  background: rgb(18 19 26 / 0.14);
-  box-shadow: inset 0 0 0 1px rgb(18 19 26 / 0.25);
+.ui .btn .kbd {
+  background: rgb(255 255 255 / 0.2);
+  box-shadow: none;
   color: inherit;
+}
+
+.ui .btn--ghost .kbd {
+  background: rgb(0 0 0 / 0.08);
 }
 
 .bar {
@@ -183,7 +228,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--lime-500);
+  background: var(--green-500);
   transform-origin: left;
   transition: background var(--base) linear;
 }
@@ -206,33 +251,62 @@
   color: var(--ink-100);
 }
 
-/* Marca: palavra em itálico falso (a fonte não tem itálico) + raio */
+.light .kbd {
+  background: var(--ink-800);
+  box-shadow: inset 0 0 0 1px var(--ink-700);
+}
+
+/* Marca: "rapidão" em minúsculas com o "rapi" verde, e o raio num quadrado verde */
 .wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 0.28em;
-  font-weight: 900;
-  letter-spacing: -0.035em;
+  gap: 0.35em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
   line-height: 1;
 }
 
-.wordmark__text {
-  display: inline-block;
-  transform: skewX(-9deg);
+.wordmark__text i {
+  font-style: normal;
+  color: var(--green-500);
 }
 
 .wordmark__bolt {
-  width: 0.95em;
-  height: 0.95em;
-  padding: 0.14em;
-  border-radius: 0.28em;
-  background: var(--lime-500);
-  color: var(--ink-900);
+  width: 1.1em;
+  height: 1.1em;
+  padding: 0.2em;
+  border-radius: 0.3em;
+  background: var(--green-500);
+  color: #fff;
 }
 
-.wordmark--on-brand .wordmark__bolt {
-  background: var(--ink-900);
-  color: var(--lime-500);
+/* Etiqueta curta (status, fase, prazo) */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.3em 0.7em;
+  border-radius: var(--r-full);
+  background: var(--ink-800);
+  color: var(--ink-100);
+  font-size: 0.75em;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.chip--green {
+  background: var(--green-900);
+  color: var(--green-700);
+}
+
+.chip--red {
+  background: var(--red-900);
+  color: var(--red-500);
+}
+
+.chip--black {
+  background: #000;
+  color: #fff;
 }
 
 @media (prefers-reduced-motion: reduce) {

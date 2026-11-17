@@ -14,4 +14,4 @@ Todos os modelos 3D em `models/` são de **Kenney** (https://kenney.nl), licenç
 
 ## Fontes
 
-- `fonts/figtree-latin-wght-normal.woff2` — **Figtree** (variável, subset latin), de Erik Kennedy, licença **SIL Open Font License 1.1**, via Fontsource (https://fontsource.org/fonts/figtree).
+- `fonts/manrope-latin-wght-normal.woff2` — **Manrope** (variável, subset latin), de Mikhail Sharanda, licença **SIL Open Font License 1.1**, via Google Fonts (https://fonts.google.com/specimen/Manrope).

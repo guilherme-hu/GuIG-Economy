@@ -21,6 +21,11 @@ export const icons = {
   signal: `<svg viewBox="0 0 18 12" fill="currentColor" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.500" width="3" height="6.500" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8" opacity=".35"/></svg>`,
   battery: `<svg viewBox="0 0 26 12" fill="none" aria-hidden="true"><rect x=".6" y=".6" width="21.800" height="10.800" rx="3" stroke="currentColor" stroke-opacity=".5" stroke-width="1.200"/><rect x="2.400" y="2.400" width="7" height="7.200" rx="1.500" fill="currentColor"/><path d="M24 4v4" stroke="currentColor" stroke-opacity=".5" stroke-width="1.600" stroke-linecap="round"/></svg>`,
 
+  target: svg('<circle cx="12" cy="12" r="8.500"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6"/>'),
+  calendar: svg('<rect x="3.500" y="5" width="17" height="15.500" rx="2.500"/><path d="M3.500 10h17M8 3v4M16 3v4"/>'),
+  /** Moto com baú, para o alto das telas do app. */
+  courier: `<svg class="courier" viewBox="0 0 170 130" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="38" cy="98" r="22"/><circle cx="134" cy="98" r="22"/><path d="M38 98h40l18-34h22l16 34"/><path d="M60 64h36"/><rect x="52" y="18" width="46" height="42" rx="7"/><path d="M118 64l-6-22h14"/></svg>`,
+
   // Manobras do GPS (seta grande do HUD)
   turnLeft: svg('<path d="M18 21v-7a4 4 0 0 0-4-4H5"/><path d="m9.500 5.500-4.500 4.500 4.500 4.500"/>', 'stroke-width="2.600"'),
   turnRight: svg('<path d="M6 21v-7a4 4 0 0 1 4-4h9"/><path d="m14.500 5.500 4.500 4.500-4.500 4.500"/>', 'stroke-width="2.600"'),

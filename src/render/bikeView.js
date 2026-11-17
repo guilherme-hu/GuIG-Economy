@@ -5,7 +5,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { createCrashView } from './crashView.js';
 
 const LOOK = {
-  brand: 0xc8ff2e, // baú do Rapidão
+  brand: 0x06c167, // baú do Rapidão
   body: 0xff5a4e,
   dark: 0x1b1d26,
   metal: 0x9aa0ad,

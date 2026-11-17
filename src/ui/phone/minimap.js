@@ -7,19 +7,19 @@
 
 // Espelham src/ui/tokens.css (canvas não lê variáveis CSS sem custo por frame).
 const COLOR = {
-  ground: '#151722',
-  river: '#1d3b63',
-  riverEdge: '#2a5288',
-  street: '#343849',
-  avenue: '#565c78',
-  routeCasing: '#0b0c11',
-  route: '#c8ff2e',
-  player: '#c8ff2e',
-  ink: '#0b0c11',
-  paper: '#f5f6ee',
-  pickup: '#ffb627',
-  dropoff: '#ff5a4e',
-  faint: 'rgba(236, 238, 244, 0.55)',
+  ground: '#eef0ee',
+  river: '#bcd9f0',
+  riverEdge: '#9cc4e6',
+  street: '#d6dad6',
+  avenue: '#bfc5bf',
+  routeCasing: '#ffffff',
+  route: '#000000',
+  player: '#06c167',
+  ink: '#000000',
+  paper: '#ffffff',
+  pickup: '#06c167',
+  dropoff: '#000000',
+  faint: 'rgba(0, 0, 0, 0.45)',
 };
 
 const PLAYER_Y = 0.68; // fração da altura onde fica o jogador

@@ -11,8 +11,8 @@ const LOOK = {
   radar: 0xff8a1f, // caixa laranja do radar, no alto do poste
   colors: { verde: 0x3dff7a, amarelo: 0xffc93d, vermelho: 0xff3b30 },
   off: { verde: 0x10261a, amarelo: 0x2b2310, vermelho: 0x2e1210 }, // lente apagada: escura, para só a acesa chamar atenção
-  bag: 0xc8ff2e, // o baú, que ganha a cor do app de cada entregador
-  apps: [0xff3b30, 0xff8a00, 0x8b3dff, 0x00a8ff, 0xc8ff2e],
+  bag: 0x06c167, // o baú, que ganha a cor do app de cada entregador
+  apps: [0xff3b30, 0xff8a00, 0x8b3dff, 0x00a8ff, 0x06c167],
   jacket: 0x2b2f3d,
   helmet: 0xe9ecf2,
 };

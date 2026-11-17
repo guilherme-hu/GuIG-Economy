@@ -1,13 +1,17 @@
+import { wordmark } from './screens.js';
+
 /** Instruções antes do primeiro turno. Quem marcar "não mostrar de novo" não vê mais (fica no navegador). */
 const STORAGE_KEY = 'guig.tutorial.visto';
 
-const RULES = [
-  ['📱', 'Pegue corridas', 'Abra o celular com <b>Tab</b>, aceite uma oferta com <b>1</b>, <b>2</b> ou <b>3</b> e siga a coluna de luz verde: primeiro o restaurante, depois o cliente. Pare em cima do marcador para coletar e entregar.'],
-  ['⏱️', 'O prazo manda', 'Chegou cedo, ganha gorjeta. Atrasou, sua nota cai. Nota baixa demais e o Rapidão desativa sua conta. Corrida longa paga mais, mas o prazo aperta.'],
-  ['🚦', 'Sinal vermelho', 'Só multa onde tem <b>radar</b> (caixa laranja no poste); o GPS avisa quando há um à frente. Nos outros você pode furar. O risco é seu.'],
-  ['💥', 'Batidas', 'Encostar devagar é só um tranco. Entre 20 e 40 km/h a moto quebra e o conserto sai do seu bolso. Acima de 40 km/h é acidente: fim de jogo. Vale para carros e paredes.'],
-  ['🚷', 'Calçada e contramão', 'Subiu na calçada, a moto perde velocidade e um contador começa: zerou, multa. Contramão em rua de mão única também multa.'],
-  ['💸', 'A conta é sua', 'Combustível, aluguel da moto, multas e consertos saem dos seus ganhos, e o caminho até o restaurante não é pago. Um sinal vermelho no radar custa R$ 29,35; na calçada, R$ 88,04.'],
+const STEPS = [
+  ['1', 'Escolha a corrida', 'Abra o celular com <b>Tab</b> e aceite com <b>1</b>, <b>2</b> ou <b>3</b>. Longe paga mais, mas o prazo aperta. O trajeto até o restaurante não é pago.'],
+  ['2', 'Siga as setas', 'As setas no asfalto e a placa no alto da tela levam ao restaurante e depois ao cliente. Pare no marcador para coletar e entregar.'],
+  ['3', 'Pague as contas', 'O dia custa R$ 46,80. Combustível, aluguel da moto, multas e consertos saem do que você ganha.'],
+];
+const RISKS = [
+  ['Radar e calçada', 'Sinal vermelho só dá multa onde há radar (caixa laranja no poste); o GPS avisa antes. Calçada e contramão também multam.'],
+  ['Batida', 'Até 20 km/h é só um tranco. Até 40 km/h a moto quebra e o conserto é seu. Acima disso é acidente: fim de jogo.'],
+  ['Nota e despejo', 'Atrasos derrubam a nota; abaixo de 4,20 a conta é desativada. Dois dias sem pagar as contas, despejo.'],
 ];
 
 export function createTutorial(root) {
@@ -15,15 +19,17 @@ export function createTutorial(root) {
   el.className = 'ui tutorial';
   el.hidden = true;
   el.innerHTML = `
-    <section class="tutorial__panel" role="dialog" aria-labelledby="tutorial-title">
-      <p class="tutorial__eyebrow">Antes de sair</p>
-      <h2 id="tutorial-title">Como funciona o seu dia</h2>
-      <ul class="tutorial__rules">
-        ${RULES.map(([icon, title, text]) => `<li><span class="tutorial__icon">${icon}</span><div><h3>${title}</h3><p>${text}</p></div></li>`).join('')}
+    <section class="sheet light tutorial__panel" role="dialog" aria-labelledby="tutorial-title">
+      <header class="sheet__head">${wordmark()}<span class="chip chip--green">Novo parceiro</span></header>
+      <h2 id="tutorial-title">Como funciona o seu turno</h2>
+      <p class="tutorial__lead">São 3h45 de rua, das 17h até quase 21h: uns 15 minutos de jogo.</p>
+      <ul class="tutorial__steps">
+        ${STEPS.map(([n, title, text]) => `<li><span class="tutorial__n">${n}</span><h3>${title}</h3><p>${text}</p></li>`).join('')}
+        ${RISKS.map(([title, text]) => `<li data-risk><span class="tutorial__n">!</span><h3>${title}</h3><p>${text}</p></li>`).join('')}
       </ul>
       <footer class="tutorial__footer">
         <label class="tutorial__skip"><input type="checkbox" /> Não mostrar de novo</label>
-        <button class="btn btn--brand btn--lg" type="button">Entendi, começar <span class="kbd">Enter</span></button>
+        <button class="btn btn--brand btn--lg" type="button">Ficar online <span class="kbd">Enter</span></button>
       </footer>
     </section>`;
   root.append(el);

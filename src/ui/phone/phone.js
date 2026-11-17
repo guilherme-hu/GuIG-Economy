@@ -16,13 +16,13 @@ const SHIFT_START_MIN = 17 * 60; // o turno começa às 17h
 const NOTIFY_ICON = { multa: icons.fine, gorjeta: icons.tip, nota: icons.star, pagamento: icons.cash, info: icons.info };
 
 const t = copy.phone;
-const wordmark = `<span class="wordmark">${icons.bolt}<span class="wordmark__text">${copy.brand.name}</span></span>`;
+const wordmark = `<span class="wordmark">${icons.bolt}<span class="wordmark__text"><i>rapi</i>dão</span></span>`;
 
 const template = `
 <div class="ui phone" data-open="false" data-tab="ofertas">
-  <div class="phone__toasts" data-ref="toasts" aria-live="polite"></div>
+  <div class="phone__toasts light" data-ref="toasts" aria-live="polite"></div>
 
-  <button class="phone__handle" data-ref="handle" type="button" aria-label="${t.closed.open} ${copy.brand.name}">
+  <button class="phone__handle light" data-ref="handle" type="button" aria-label="${t.closed.open} ${copy.brand.name}">
     ${wordmark}
     <span class="phone__handle-badge num" data-ref="handleBadge" hidden></span>
     <span class="phone__handle-key"><span class="kbd">${t.closed.key}</span></span>
@@ -31,7 +31,7 @@ const template = `
   <div class="phone__closehint"><span class="kbd">${t.closed.key}</span>${t.closed.close}</div>
 
   <div class="phone__device" data-ref="device">
-    <div class="phone__screen">
+    <div class="phone__screen light">
       <div class="phone__status">
         <span class="phone__status-shift num"><span data-ref="shift">17:00</span></span>
         <span class="phone__island"></span>
@@ -95,7 +95,7 @@ const template = `
           <div class="empty empty--compact" data-ref="rideEmpty">
             <strong>${t.ride.emptyTitle}</strong>
             <span>${t.ride.emptyText}</span>
-            <button class="btn btn--brand" data-ref="rideEmptyAction" type="button">${t.ride.emptyAction}</button>
+            <button class="btn btn--dark" data-ref="rideEmptyAction" type="button">${t.ride.emptyAction}</button>
           </div>
         </section>
 
@@ -177,7 +177,7 @@ const offerTemplate = (index) => `
   </div>
   <div class="offer__actions">
     <button class="btn btn--ghost" data-ref="decline" type="button">${t.offers.decline}</button>
-    <button class="btn btn--brand" data-ref="accept" type="button">${t.offers.accept}<span class="kbd">${index + 1}</span></button>
+    <button class="btn btn--dark" data-ref="accept" type="button">${t.offers.accept}<span class="kbd">${index + 1}</span></button>
   </div>
   <span class="offer__expires num" data-ref="expires"></span>
   <div class="offer__bar"><i data-ref="bar"></i></div>

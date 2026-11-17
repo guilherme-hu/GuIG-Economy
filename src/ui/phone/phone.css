@@ -53,8 +53,8 @@
   margin-left: -0.3em;
   padding: 0 0.4em;
   border-radius: var(--r-full);
-  background: var(--lime-500);
-  color: var(--ink-900);
+  background: var(--green-500);
+  color: var(--on-brand);
   font-size: 0.8em;
   font-weight: 800;
   animation: badge-pulse 1.2s var(--ease-out) infinite;
@@ -62,10 +62,10 @@
 
 @keyframes badge-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgb(200 255 46 / 0.55);
+    box-shadow: 0 0 0 0 rgb(6 193 103 / 0.5);
   }
   100% {
-    box-shadow: 0 0 0 0.7em rgb(200 255 46 / 0);
+    box-shadow: 0 0 0 0.7em rgb(6 193 103 / 0);
   }
 }
 
@@ -111,7 +111,7 @@
   height: calc(var(--phone-w) * 1.9);
   padding: 0.5em;
   border-radius: 2.5em;
-  background: linear-gradient(145deg, #2c2f3d, #0b0c11 30%, #0b0c11 70%, #23262f);
+  background: linear-gradient(145deg, #2e2e2e, #0f0f0f 30%, #0f0f0f 70%, #262626);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14), 0 0 0 1px rgb(0 0 0 / 0.6), var(--shadow-pop);
   font-size: calc(var(--phone-w) / 24);
   pointer-events: auto;
@@ -212,8 +212,8 @@
   gap: 0.4em;
   padding: 0.22em 0.6em 0.22em 0.5em;
   border-radius: var(--r-full);
-  background: rgb(200 255 46 / 0.12);
-  color: var(--lime-400);
+  background: var(--green-900);
+  color: var(--green-700);
   font-size: 0.66em;
   font-weight: 700;
 }
@@ -222,7 +222,7 @@
   width: 0.55em;
   height: 0.55em;
   border-radius: 50%;
-  background: var(--lime-500);
+  background: var(--green-500);
   animation: online-blink 2s ease-in-out infinite;
 }
 
@@ -325,7 +325,7 @@
   width: 0.75em;
   height: 0.75em;
   border-radius: 50%;
-  background: var(--lime-500);
+  background: var(--green-500);
   box-shadow: 0 0 0 0.2em var(--ink-950);
 }
 
@@ -338,8 +338,8 @@
 .phone[data-tab='ofertas'] [data-tab-button='ofertas'] .phone__tab-icon,
 .phone[data-tab='corrida'] [data-tab-button='corrida'] .phone__tab-icon,
 .phone[data-tab='carteira'] [data-tab-button='carteira'] .phone__tab-icon {
-  background: rgb(200 255 46 / 0.14);
-  color: var(--lime-500);
+  background: var(--ink-800);
+  color: var(--ink-100);
 }
 
 /* ───────────── Peças comuns ───────────── */
@@ -351,7 +351,7 @@
   letter-spacing: 0.01em;
 }
 
-.chip {
+.phone .chip {
   display: inline-flex;
   align-items: center;
   padding: 0.25em 0.65em;
@@ -392,8 +392,8 @@
   height: 4.6em;
   margin-bottom: 1.2em;
   border-radius: 50%;
-  background: rgb(200 255 46 / 0.12);
-  color: var(--lime-500);
+  background: var(--green-900);
+  color: var(--green-500);
 }
 
 .empty__radar svg {
@@ -405,7 +405,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1px solid var(--lime-500);
+  border: 1px solid var(--green-500);
   animation: radar 2.4s var(--ease-out) infinite;
 }
 
@@ -533,7 +533,7 @@
 
 .offer__pay {
   margin-right: auto;
-  color: var(--lime-500);
+  color: var(--ink-100);
   font-size: 1.85em;
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -584,16 +584,16 @@
 .offer__bar i {
   display: block;
   height: 100%;
-  background: var(--lime-500);
+  background: var(--green-500);
   transform-origin: left;
 }
 
 .offer[data-urgent] .offer__expires {
-  color: var(--coral-400);
+  color: var(--red-400);
 }
 
 .offer[data-urgent] .offer__bar i {
-  background: var(--coral-500);
+  background: var(--red-500);
 }
 
 /* ───────────── Corrida ───────────── */
@@ -621,15 +621,15 @@
   left: 0.8em;
   padding: 0.35em 0.8em;
   border-radius: var(--r-full);
-  background: var(--amber-500);
-  color: var(--ink-900);
+  background: #000;
+  color: #fff;
   font-size: 0.72em;
   font-weight: 800;
-  box-shadow: 0 0.3em 0.8em rgb(0 0 0 / 0.4);
+  box-shadow: 0 0.3em 0.8em rgb(0 0 0 / 0.25);
 }
 
 .ride__chip[data-phase='entrega'] {
-  background: var(--coral-500);
+  background: var(--green-500);
 }
 
 .ride__panel,
@@ -718,11 +718,11 @@
 }
 
 .ride__steps[data-phase='entrega'] .ride__step--entrega {
-  color: var(--coral-400);
+  color: var(--red-400);
 }
 
 .ride__steps[data-phase='entrega'] .ride__step--entrega i {
-  background: var(--coral-500);
+  background: var(--red-500);
   box-shadow: 0 0 0 0.25em rgb(255 90 78 / 0.22);
 }
 
@@ -747,7 +747,7 @@
 
 .ride__pay-value {
   display: block;
-  color: var(--lime-500);
+  color: var(--ink-100);
   font-size: 1.35em;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -765,15 +765,15 @@
 .ride__panel[data-heat='hot'] .ride__time,
 .ride__panel[data-heat='late'] .ride__time,
 .ride__panel[data-heat='late'] [data-ref='rideTimerLabel'] {
-  color: var(--coral-500);
+  color: var(--red-500);
 }
 
 .ride__panel[data-heat='hot'] .ride__bar i {
-  background: var(--coral-500);
+  background: var(--red-500);
 }
 
 .ride__panel[data-heat='late'] .ride__bar {
-  background: var(--coral-900);
+  background: var(--red-900);
 }
 
 .ride__panel[data-heat='hot'] .ride__time,
@@ -839,7 +839,7 @@
 }
 
 .ride__panel[data-heat='late'] .ride__hint {
-  color: var(--coral-400);
+  color: var(--red-400);
 }
 
 /* ───────────── Carteira ───────────── */
@@ -849,12 +849,12 @@
   gap: 0.1em;
   padding: 0.9em 1em 0.9em;
   border-radius: 1.2em;
-  background: var(--lime-500);
-  color: var(--ink-900);
+  background: #000;
+  color: #fff;
 }
 
 .wallet__hero .label {
-  color: rgb(18 19 26 / 0.66);
+  color: #b4b4b4;
   font-weight: 700;
 }
 
@@ -871,15 +871,14 @@
   margin-top: 0.35em;
 }
 
-.chip--warn {
+.phone .chip--warn {
   background: var(--ink-900);
   color: var(--amber-400);
 }
 
 .wallet__hero[data-negative] {
-  background: var(--ink-800);
-  color: var(--coral-400);
-  box-shadow: inset 0 0 0 1px rgb(255 90 78 / 0.35);
+  background: #000;
+  color: var(--red-400);
 }
 
 .wallet__hero[data-negative] .label {
@@ -887,8 +886,8 @@
 }
 
 .wallet__hero[data-negative] .chip {
-  background: var(--ink-700);
-  color: var(--ink-200);
+  background: rgb(255 255 255 / 0.14);
+  color: #fff;
 }
 
 .wallet__rows {
@@ -925,7 +924,7 @@
 
 .wallet__row[data-alert] dt,
 .wallet__row[data-alert] dd {
-  color: var(--coral-400);
+  color: var(--red-400);
 }
 
 .wallet__card {
@@ -961,11 +960,11 @@
 }
 
 .wallet__card[data-met] .wallet__note {
-  color: var(--lime-400);
+  color: var(--green-400);
 }
 
 .wallet__note[data-alert] {
-  color: var(--coral-400);
+  color: var(--red-400);
 }
 
 .wallet__rep {
@@ -997,11 +996,11 @@
 }
 
 .wallet__rep-col[data-alert] .wallet__rep-value {
-  color: var(--coral-400);
+  color: var(--red-400);
 }
 
 .wallet__rep-col[data-alert] .bar i {
-  background: var(--coral-500);
+  background: var(--red-500);
 }
 
 .stars {
@@ -1058,10 +1057,9 @@
   gap: 0.7em;
   padding: 0.65em 0.85em 0.65em 0.65em;
   border-radius: 1.1em;
-  background: rgb(36 39 53 / 0.9);
-  -webkit-backdrop-filter: var(--plate-blur);
-  backdrop-filter: var(--plate-blur);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12), 0 0.6em 1.6em rgb(0 0 0 / 0.45);
+  background: #fff;
+  color: #000;
+  box-shadow: inset 0 0 0 1px var(--ink-700), 0 0.6em 1.6em rgb(0 0 0 / 0.25);
   animation: push-in var(--slow) var(--ease-spring);
   transition: opacity 300ms linear, transform 300ms var(--ease-out);
 }
@@ -1107,14 +1105,14 @@
 }
 
 .push[data-kind='multa'] .push__icon {
-  background: var(--coral-500);
-  color: var(--ink-950);
+  background: var(--red-900);
+  color: var(--red-500);
 }
 
 .push[data-kind='gorjeta'] .push__icon,
 .push[data-kind='pagamento'] .push__icon {
-  background: var(--lime-500);
-  color: var(--ink-900);
+  background: var(--green-900);
+  color: var(--green-700);
 }
 
 .push[data-kind='nota'] .push__icon {

@@ -4,7 +4,7 @@
  */
 import * as THREE from 'three';
 
-const LOOK = { color: 0xc8ff2e, height: 60, radius: 1.6, ring: 4.5, opacity: 0.35 };
+const LOOK = { color: 0x06c167, height: 60, radius: 1.6, ring: 4.5, opacity: 0.35 };
 const ROUTE = { width: 0.8, lateral: 1.4, y: 0.16, dash: 2.2, speed: 5, opacity: 0.55 };
 
 export function createMarkersView({ scene }) {

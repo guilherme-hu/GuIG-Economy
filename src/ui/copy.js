@@ -1,7 +1,7 @@
 /**
  * Todos os textos do jogo, num lugar só.
- * Voz do Rapidão: corporativa e falsamente animada. A crítica vem do contraste
- * entre o tom e a regra, nunca de sermão.
+ * Voz do Rapidão: curta, cordial e corporativa, como um app de entrega de verdade. Sem emojis.
+ * A crítica vem do contraste entre o tom e a regra, nunca de sermão.
  */
 import { money, rating, clock } from './format.js';
 
@@ -13,10 +13,11 @@ export const copy = {
 
   brand: {
     name: 'Rapidão',
-    pitchTitle: 'Você é seu próprio chefe! 🚀',
-    pitchText: 'Faça seus horários, escolha suas corridas e ganhe por entrega.*',
+    pitchTitle: 'Ganhe no seu tempo. Seja seu próprio chefe.',
+    pitchText: 'Faça seus horários, escolha suas corridas e receba por entrega.*',
+    perks: ['Sem patrão', 'Horário livre', 'Saque na hora'],
     pitchFootnote:
-      '*Ganhos sujeitos à sua nota, à sua taxa de aceitação e à demanda. Combustível, aluguel da moto, multas e acidentes ficam por sua conta.',
+      '*Ganhos sujeitos à sua nota, à taxa de aceitação e à demanda. Combustível, aluguel da moto, multas e acidentes por sua conta.',
   },
 
   controls: {
@@ -42,8 +43,8 @@ export const copy = {
   },
 
   pause: {
-    title: 'Jogo pausado',
-    text: 'O turno espera por você. As contas, não.',
+    title: 'Pausado',
+    text: 'O turno espera. As contas, não.',
     resume: 'Voltar ao turno',
     restart: 'Recomeçar do dia 1',
   },
@@ -74,15 +75,15 @@ export const copy = {
 
     offers: {
       title: 'Corridas para você',
-      surge: '🔥 Alta demanda',
+      surge: 'Alta demanda',
       to: 'Entregar para',
       deadline: 'prazo',
       accept: 'Aceitar',
       decline: 'Recusar',
       expires: (s) => `Você tem ${s} s para aceitar`,
       busy: 'Termine a entrega atual para aceitar outra.',
-      emptyTitle: 'Procurando corridas…',
-      emptyText: 'Continue online! Tempo de espera não é remunerado. 😉',
+      emptyTitle: 'Procurando corridas',
+      emptyText: 'Fique online. O tempo de espera não é pago.',
     },
 
     ride: {
@@ -92,14 +93,14 @@ export const copy = {
       stepEntrega: 'Entrega',
       timeLeft: 'Tempo restante',
       late: 'Atrasado',
-      lateHint: 'Atrasos afetam sua nota. Você consegue! 💪',
+      lateHint: 'Atrasos derrubam sua nota.',
       cancelHint: 'Com mais de 1 min de atraso, o pedido é cancelado sem pagamento.',
       pay: 'Você recebe',
       remaining: 'Faltam',
       pickupAt: 'Retirar em',
       deliverTo: 'Entregar para',
       emptyTitle: 'Nenhuma corrida em andamento',
-      emptyText: 'Parado você não ganha. Aceite uma oferta!',
+      emptyText: 'Parado, você não ganha. Aceite uma oferta.',
       emptyAction: 'Ver ofertas',
     },
 
@@ -116,14 +117,14 @@ export const copy = {
       },
       billsTitle: 'Contas do dia',
       billsLeft: (v) => `Faltam ${money(v)}`,
-      billsMet: 'Meta batida! 🎉',
+      billsMet: 'Contas do dia pagas',
       reputation: 'Sua reputação',
       ratingLabel: 'Nota',
       ratingMin: (min) => `Mínimo para continuar ativo: ${rating(min)}`,
-      ratingRisk: 'Sua conta está em risco. Continue se esforçando!',
+      ratingRisk: 'Sua conta está em risco de desativação.',
       acceptance: 'Taxa de aceitação',
       acceptanceOk: 'Aceite mais corridas para ver ofertas melhores.',
-      acceptanceLow: 'Você está vendo menos ofertas. Aceite mais! 😉',
+      acceptanceLow: 'Você está vendo menos ofertas. Aceite mais.',
     },
   },
 
@@ -156,28 +157,28 @@ export const copy = {
     }),
     tip: (amount) => ({
       kind: 'gorjeta',
-      title: `Gorjeta de ${money(amount)}! 🎉`,
-      text: 'O cliente adorou a rapidez. Continue assim!',
+      title: `Gorjeta de ${money(amount)}`,
+      text: 'O cliente gostou da rapidez.',
     }),
     payment: (amount) => ({
       kind: 'pagamento',
       title: `Você recebeu ${money(amount)}`,
-      text: 'Entrega concluída. Já tem mais corridas esperando!',
+      text: 'Entrega concluída. Já tem corrida esperando.',
     }),
     ratingDown: (value) => ({
       kind: 'nota',
       title: `Sua nota caiu para ${rating(value)}`,
-      text: 'Continue se esforçando! 💪',
+      text: 'Entregas atrasadas afetam sua avaliação.',
     }),
     ratingUp: (value) => ({
       kind: 'nota',
-      title: `Sua nota subiu para ${rating(value)} ⭐`,
-      text: 'Clientes felizes, parceiro feliz!',
+      title: `Sua nota subiu para ${rating(value)}`,
+      text: 'Clientes satisfeitos avaliam melhor.',
     }),
     late: (seconds) => ({
       kind: 'nota',
       title: `Entrega com ${clock(seconds)} de atraso`,
-      text: 'Sem gorjeta desta vez. Atrasos afetam sua nota.',
+      text: 'Sem gorjeta. Atrasos derrubam sua nota.',
     }),
     cancelled: () => ({
       kind: 'multa',
@@ -187,12 +188,12 @@ export const copy = {
     pickup: (customer) => ({
       kind: 'info',
       title: 'Pedido coletado',
-      text: `Agora é só entregar para ${customer}. O relógio continua!`,
+      text: `Agora entregue para ${customer}. O relógio continua correndo.`,
     }),
     offerExpired: () => ({
       kind: 'info',
       title: 'Oferta expirada',
-      text: 'Isso reduz sua taxa de aceitação. Fique de olho! 👀',
+      text: 'Isso reduz sua taxa de aceitação.',
     }),
     sound: (muted) => ({
       kind: 'info',
@@ -206,15 +207,14 @@ export const copy = {
     }),
     shiftStart: () => ({
       kind: 'info',
-      title: 'Você está online! 🚀',
-      text: 'Você é seu próprio chefe. Boas entregas!',
+      title: 'Você está online',
+      text: 'Boas entregas.',
     }),
   },
 
   statement: {
-    eyebrow: (day) => `Extrato do dia ${day}`,
-    title: 'Parabéns pelo seu dia! 🎉',
-    receiptTitle: 'Resumo de ganhos',
+    eyebrow: 'Seus ganhos de hoje',
+    title: 'Turno encerrado',
     receiptDay: (day) => `Dia ${day}`,
     rows: {
       gross: 'Corridas',
@@ -224,42 +224,38 @@ export const copy = {
       fines: 'Multas',
     },
     net: 'Líquido do dia',
-    deliveries: 'Entregas',
-    late: 'Com atraso',
-    hours: 'Horas trabalhadas',
-    perHourLabel: 'Você ganhou por hora',
-    perHourUnit: '/hora',
-    perHourNote: 'Você é seu próprio chefe! 🚀',
+    deliveries: (n) => (n === 1 ? '1 entrega' : `${n} entregas`),
+    late: (n) => (n === 1 ? '1 atrasada' : `${n} atrasadas`),
+    perHourLabel: 'Por hora',
     billsTitle: 'Contas do dia',
-    billsMetTag: 'Meta batida',
-    billsMissedTag: 'Meta não batida',
-    billsMet: 'Contas pagas. Amanhã elas voltam um pouco maiores!',
-    billsMissed: (missing) => `Faltaram ${money(missing)}. Que tal ficar mais tempo online amanhã? 😉`,
-    evictionWarning: 'Dois dias seguidos sem bater a meta e você é despejado.',
+    billsMetTag: 'Pagas',
+    billsMissedTag: (missing) => `Faltaram ${money(missing)}`,
+    billsMet: 'Aluguel, comida e luz pagos. Amanhã as contas sobem um pouco.',
+    billsMissed: 'Aluguel, comida e luz. Amanhã as contas sobem um pouco.',
+    evictionWarning: 'Mais um dia sem pagar as contas e você é despejado.',
     footnote:
       'O Rapidão é uma plataforma de tecnologia. Combustível, aluguel, multas e riscos são de responsabilidade do parceiro.',
     next: 'Começar o próximo dia',
   },
 
   gameOver: {
-    from: 'Mensagem do Rapidão',
     acidente: {
       tag: 'Acidente',
       title: 'Você sofreu um acidente',
-      message: 'O Rapidão lamenta o ocorrido e informa que você não possui vínculo com a plataforma.',
-      aside: 'Seu pedido foi repassado a outro parceiro. Boa recuperação! 💚',
+      message: 'O Rapidão lamenta o ocorrido e lembra que você não tem vínculo com a plataforma.',
+      aside: 'Seu pedido foi repassado a outro parceiro.',
     },
     desativado: {
       tag: 'Conta desativada',
       title: 'Sua conta foi desativada',
-      message: 'Sua nota ficou abaixo do mínimo exigido. A decisão é automática e definitiva.',
-      aside: 'Agradecemos pelo tempo em que você foi seu próprio chefe! 🚀',
+      message: 'Sua avaliação ficou abaixo do mínimo de 4,20. A decisão é automática.',
+      aside: 'Não cabe recurso.',
     },
     despejado: {
       tag: 'Despejado',
       title: 'Você foi despejado',
-      message: 'Notamos que você não bateu suas metas. Parceiros que ficam mais tempo online ganham mais!',
-      aside: 'Dois dias sem pagar as contas. O aplicativo segue disponível para você. 😉',
+      message: 'Dois dias seguidos sem pagar as contas.',
+      aside: 'Parceiros que ficam mais tempo online ganham mais. O aplicativo segue disponível para você.',
     },
     stats: {
       days: 'Dias trabalhados',
