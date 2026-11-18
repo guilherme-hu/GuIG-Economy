@@ -33,6 +33,7 @@ import { createTutorial } from './ui/tutorial.js';
 import { createScreens } from './ui/screens.js';
 import { createEffects } from './render/effects.js';
 import { createAudio } from './audio/audio.js';
+import { loadSettings, saveSettings } from './ui/settings.js';
 
 const canvas = document.getElementById('jogo');
 const params = new URLSearchParams(location.search);
@@ -128,7 +129,7 @@ function leaveStreet(phase, screen, data) {
   sim.phase = phase;
   hud.setVisible(false);
   warning.show(null);
-  phone.close();
+  phone.setVisible(false);
   screens.show(screen, data);
 }
 events.on('shift:end', (data) => leaveStreet('extrato', 'extrato', data));
@@ -139,11 +140,26 @@ events.on('shift:start', () => {
   chase.snap();
   screens.hide();
   hud.setVisible(true);
+  phone.setVisible(true);
   phone.open();
 });
 
-const screens = createScreens(ui, { onStart: firstShift, onResume: resume, onNextDay: () => shift.nextDay(), onRestart: () => location.reload() });
+const settings = loadSettings();
+const screens = createScreens(ui, {
+  onStart: firstShift,
+  onResume: resume,
+  onNextDay: () => shift.nextDay(),
+  onMenu: () => location.reload(), // recarregar zera a simulação inteira e volta ao menu
+  getSettings: () => ({ ...settings, sound: audio.muted ? 'off' : 'on' }),
+  onSetting(name, value) {
+    if (name === 'sound') return (value === 'off') !== audio.muted && audio.toggleMute();
+    settings[name] = value;
+    saveSettings(settings);
+    applySettings();
+  },
+});
 hud.setVisible(false);
+phone.setVisible(false);
 if (botProfile) startBot();
 else if (!debugMap) screens.show('menu');
 
@@ -177,7 +193,12 @@ function resume() {
   loop.timeScale = 1;
 }
 input.onAction((action) => {
-  if (action === 'mute') return phone.notify(copy.notify.sound(audio.toggleMute()));
+  if (action === 'mute') {
+    phone.notify(copy.notify.sound(audio.toggleMute()));
+    if (screens.current === 'config') screens.show('config', { ...settings, sound: audio.muted ? 'off' : 'on' });
+    return;
+  }
+  if (action === 'pause' && screens.current === 'config') return screens.closeSettings();
   if (sim.phase !== 'turno') return;
   if (action === 'phone') return phone.toggle();
   if (action !== 'pause') return;
@@ -223,15 +244,25 @@ function debugPose(text) {
   return { x, z, distance, tilt: radians(tilt), turn: (turn * Math.PI) / 180 };
 }
 
-/** Se pilotando o quadro passar de ~30 ms por alguns segundos, baixa a qualidade (uma vez só). */
+function applySettings() {
+  stage.setQuality({ shadows: settings.shadows === 'on', resolution: settings.resolution });
+  loop.maxFps = Number(settings.fps);
+}
+
+/**
+ * Se pilotando o quadro passar de ~30 ms por alguns segundos, baixa a qualidade (uma vez só e sem salvar).
+ * Com o limite em 30 fps, quadro lento é o que passa bem do intervalo pedido.
+ */
 const QUALITY = { slowFrame: 1 / 33, patience: 3 };
 let slowFor = 0;
 function watchFrameRate(frameDt, riding) {
   if (slowFor < 0 || !riding || document.hidden) return;
-  slowFor = frameDt > QUALITY.slowFrame ? slowFor + frameDt : Math.max(0, slowFor - frameDt);
+  const slow = Math.max(QUALITY.slowFrame, loop.maxFps ? 1.4 / loop.maxFps : 0);
+  slowFor = frameDt > slow ? slowFor + frameDt : Math.max(0, slowFor - frameDt);
   if (slowFor < QUALITY.patience) return;
   slowFor = -1;
-  stage.lowerQuality();
+  Object.assign(settings, { shadows: 'off', resolution: 'leve' });
+  applySettings();
   console.info('[jogo] quadros lentos: sombras desligadas e resolução reduzida');
 }
 
@@ -286,6 +317,7 @@ const loop = createLoop({
     stage.render(view.camera, riding ? bike : null);
   },
 });
+applySettings();
 loop.start();
 if (botProfile) loop.timeScale = Number(params.get('vel')) || 1;
 

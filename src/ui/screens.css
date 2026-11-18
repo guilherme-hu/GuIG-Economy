@@ -21,7 +21,8 @@
 .screens[data-screen='menu'] .screen--menu,
 .screens[data-screen='pausa'] .screen--pausa,
 .screens[data-screen='extrato'] .screen--extrato,
-.screens[data-screen='fim'] .screen--fim {
+.screens[data-screen='fim'] .screen--fim,
+.screens[data-screen='config'] .screen--config {
   display: flex;
 }
 
@@ -570,4 +571,102 @@
   width: 1.2em;
   height: 1.2em;
   accent-color: var(--green-500);
+}
+
+/* ───────────── Configurações ───────────── */
+.gear {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.6em;
+  height: 2.6em;
+  border-radius: var(--r-full);
+  background: var(--ink-800);
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--fast) linear, transform var(--fast) var(--ease-out);
+}
+
+.gear:hover {
+  background: var(--ink-700);
+}
+
+.gear:active {
+  transform: scale(0.94);
+}
+
+.gear svg {
+  width: 1.35em;
+  height: 1.35em;
+}
+
+.gear--float {
+  position: absolute;
+  top: 2em;
+  right: 2.5em;
+  background: rgb(0 0 0 / 0.72);
+  color: #fff;
+}
+
+.gear--float:hover {
+  background: #000;
+}
+
+.settings {
+  width: 30em;
+  padding: 1.8em 1.9em;
+}
+
+.settings h1 {
+  font-size: 2em;
+}
+
+.settings > p {
+  margin: 0.4em 0 1em;
+  color: var(--text-dim);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.settings__rows {
+  margin-bottom: 1.3em;
+}
+
+.settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.65em 0;
+  border-bottom: 1px solid var(--ink-700);
+  font-weight: 700;
+}
+
+/* Controle segmentado: a opção escolhida fica preta */
+.seg {
+  display: flex;
+  gap: 0.2em;
+  padding: 0.2em;
+  border-radius: 0.7em;
+  background: var(--ink-800);
+}
+
+.seg button {
+  height: 2.3em;
+  padding: 0 0.85em;
+  border-radius: 0.55em;
+  color: var(--text-dim);
+  font-size: 0.85em;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.seg button:hover {
+  color: var(--text);
+}
+
+.seg button[aria-pressed='true'] {
+  background: #000;
+  color: #fff;
 }

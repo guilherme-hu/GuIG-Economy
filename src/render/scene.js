@@ -40,6 +40,8 @@ const SKY_SHADER = {
     }`,
 };
 
+const QUALITY = { pixelRatio: { alta: 1.5, leve: 1 } };
+
 export function createScene(canvas) {
   // Profundidade logarítmica: as camadas do chão ficam a centímetros umas das outras e a vista aérea está a quilômetros.
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
@@ -94,7 +96,8 @@ export function createScene(canvas) {
   setDaylight(0);
 
   const resizeHandlers = new Set();
-  let maxPixelRatio = 1.5;
+  let maxPixelRatio = QUALITY.pixelRatio.alta;
+  let shadows = true;
   function resize() {
     renderer.setPixelRatio(Math.min(devicePixelRatio, maxPixelRatio));
     renderer.setSize(innerWidth, innerHeight, false);
@@ -104,7 +107,7 @@ export function createScene(canvas) {
 
   /** Sombras só perto da moto (`focus`); sem foco (menu, mapa) ou com o sol fraco, nada de sombra. */
   function placeSun(focus) {
-    sun.castShadow = !!focus && sun.intensity > SHADOW.minPower;
+    sun.castShadow = shadows && !!focus && sun.intensity > SHADOW.minPower;
     const step = (SHADOW.size * 2) / SHADOW.map; // anda de texel em texel: a sombra não tremula
     const x = focus ? Math.round(focus.x / step) * step : 0;
     const z = focus ? Math.round(focus.z / step) * step : 0;
@@ -114,10 +117,10 @@ export function createScene(canvas) {
 
   return Object.assign(stage, {
     setDaylight,
-    /** Placa de vídeo fraca: sem sombras e com menos pixels. */
-    lowerQuality() {
-      renderer.shadowMap.enabled = false;
-      maxPixelRatio = 1;
+    /** Configurações gráficas: sombras ligadas ou não e resolução 'alta' ou 'leve'. */
+    setQuality(options) {
+      shadows = options.shadows;
+      maxPixelRatio = QUALITY.pixelRatio[options.resolution] ?? QUALITY.pixelRatio.alta;
       resize();
     },
     /** A vista aérea de debug precisa enxergar o mapa inteiro, sem neblina. */
