@@ -53,7 +53,7 @@ Nenhuma tela do jogo explica a uberização. Ela aparece nas regras. Você só g
 
 O extrato do fim do dia mostra o resultado do "seja seu próprio chefe": bruto, gorjetas, custos, líquido e quanto isso deu por hora, comparado com uma conta diária de R$ 46,80 (o salário mínimo líquido de 2025 dividido por 30). Dois dias seguidos sem pagar e você é despejado.
 
-Os valores vêm de dados reais (pagamento do iFood, reivindicações da greve de 2025, aluguel de moto, multas do CTB) e estão com as fontes em [docs/valores-e-fontes.md](docs/valores-e-fontes.md). Lá também está a simulação usada para calibrar a economia. Com sinais e radares, o robô que respeita todo sinal fecha o dia com R$ 26 a R$ 59 e paga as contas em 2 de 9 dias. O que fura o vermelho onde não tem radar ganha até R$ 105, paga as contas em 6 de 9 dias e leva multa. Com o trânsito ligado, ele bate nos primeiros minutos.
+Os valores vêm de dados reais (pagamento do iFood, reivindicações da greve de 2025, aluguel de moto, multas do CTB) e estão com as fontes em [docs/valores-e-fontes.md](docs/valores-e-fontes.md). Lá também está a simulação usada para calibrar a economia. Com sinais e radares, o robô que respeita todo sinal fecha o dia com R$ 26 a R$ 59 e paga as contas em 2 de 9 dias. O que fura o vermelho onde não tem radar ganha até R$ 78, paga as contas em 6 de 9 dias e leva multa em mais da metade deles. Com o trânsito ligado, ele bate nos primeiros minutos.
 
 ## Como o código está organizado
 
