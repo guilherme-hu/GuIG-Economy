@@ -10,7 +10,7 @@ const STEPS = [
 ];
 const RISKS = [
   ['Radar e calçada', 'Sinal vermelho só dá multa onde há radar (caixa laranja no poste); o GPS avisa antes. Calçada e contramão também multam.'],
-  ['Batida', 'Até 20 km/h é só um tranco. Até 40 km/h a moto quebra e o conserto é seu. Acima disso é acidente: fim de jogo.'],
+  ['Batida', 'Em outro veículo: até 20 km/h é só um tranco, até 40 km/h a moto quebra e o conserto é seu, acima disso é acidente e fim de jogo. No muro, só o conserto.'],
   ['Nota e despejo', 'Atrasos derrubam a nota; abaixo de 4,20 a conta é desativada. Dois dias sem pagar as contas, despejo.'],
 ];
 

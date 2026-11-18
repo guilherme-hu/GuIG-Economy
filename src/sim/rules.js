@@ -25,7 +25,8 @@ export function createRules({ city, signals, traffic, bike, economy, events, rng
     step(dt) {
       if (bike.frozen || !bike.road) return;
       repairCooldown -= dt;
-      if (bike.wallHit) impact(bike.wallHit, 'parede');
+      // Parede é o limite da calçada, não um prédio de verdade: nunca é acidente, no máximo um conserto.
+      if (bike.wallHit) impact(bike.wallHit, 'parede', undefined, Infinity);
       checkVehicles();
       checkRedLight();
       checkWrongWay(dt);
