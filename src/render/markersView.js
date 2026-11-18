@@ -1,11 +1,12 @@
 /**
  * Marcador do destino atual (coleta ou entrega): coluna de luz visível de longe + anel no chão.
- * E a rota do GPS pintada no asfalto: uma faixa de setas que correm em direção ao destino.
+ * E a rota do GPS: setas em 3D, um pouco acima do asfalto e semitransparentes, que correm em direção ao destino.
  */
 import * as THREE from 'three';
 
 const LOOK = { color: 0x06c167, height: 60, radius: 1.6, ring: 4.5, opacity: 0.35 };
-const ROUTE = { width: 0.8, lateral: 1.4, y: 0.16, dash: 2.2, speed: 5, opacity: 0.55 };
+// spacing: m entre setas; turnLook: m antes e depois usados para virar a seta (suaviza as esquinas)
+const ROUTE = { lateral: 1.4, y: 0.6, size: 1.1, thickness: 0.16, spacing: 3.5, speed: 5, opacity: 0.45, turnLook: 1.6, max: 1200 };
 
 export function createMarkersView({ scene }) {
   const material = new THREE.MeshBasicMaterial({ color: LOOK.color, transparent: true, opacity: LOOK.opacity, depthWrite: false, fog: false });
@@ -17,76 +18,122 @@ export function createMarkersView({ scene }) {
   marker.visible = false;
   scene.add(marker);
 
-  const arrows = chevronTexture();
-  const path = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: LOOK.color, map: arrows, transparent: true, opacity: ROUTE.opacity, depthWrite: false }));
-  path.renderOrder = 2;
-  path.frustumCulled = false;
-  scene.add(path);
+  const arrowMaterial = new THREE.MeshBasicMaterial({ color: LOOK.color, transparent: true, opacity: ROUTE.opacity, depthWrite: false });
+  const arrows = new THREE.InstancedMesh(chevronGeometry(), arrowMaterial, ROUTE.max);
+  arrows.renderOrder = 2;
+  arrows.frustumCulled = false;
+  arrows.count = 0;
+  scene.add(arrows);
+  const path = createPath();
+  const matrix = new THREE.Matrix4();
+  const forward = new THREE.Vector3();
+  const face = new THREE.Vector3();
+  const side = new THREE.Vector3();
+  const here = { x: 0, z: 0 };
+  const behind = { x: 0, z: 0 };
+  const ahead = { x: 0, z: 0 };
   let drawn = null;
 
   return {
-    /** `target` é um POI ou `null`; `route` é a rota do GPS (de graph.route) ou `null`. */
-    update(target, time, route) {
+    /** `target` é um POI ou `null`; `route` é a rota do GPS (de graph.route) ou `null`; `eye`, a posição da câmera. */
+    update(target, time, route, eye) {
       marker.visible = !!target;
-      path.visible = !!route;
+      arrows.visible = !!route;
       if (route && route !== drawn) {
         drawn = route;
-        path.geometry.dispose();
-        path.geometry = ribbon(route.points);
+        path.set(route.points);
       }
-      arrows.offset.x = -time * (ROUTE.speed / ROUTE.dash);
+      if (route) placeArrows(time, eye);
       if (!target) return;
       marker.position.set(target.x, 0, target.z);
       ring.scale.setScalar(1 + 0.12 * Math.sin(time * 4));
     },
   };
-}
 
-/** Faixa ao longo dos pontos, deslocada para a mão direita; `u` cresce com a distância (as setas repetem). */
-function ribbon(points) {
-  const positions = [];
-  const uvs = [];
-  const index = [];
-  let along = 0;
-  for (let i = 0; i < points.length; i++) {
-    const prev = points[Math.max(i - 1, 0)];
-    const next = points[Math.min(i + 1, points.length - 1)];
-    const length = Math.hypot(next.x - prev.x, next.z - prev.z) || 1;
-    const tx = (next.x - prev.x) / length;
-    const tz = (next.z - prev.z) / length;
-    if (i > 0) along += Math.hypot(points[i].x - points[i - 1].x, points[i].z - points[i - 1].z);
-    const cx = points[i].x - tz * ROUTE.lateral;
-    const cz = points[i].z + tx * ROUTE.lateral;
-    const w = ROUTE.width / 2;
-    positions.push(cx + tz * w, ROUTE.y, cz - tx * w, cx - tz * w, ROUTE.y, cz + tx * w);
-    uvs.push(along / ROUTE.dash, 0, along / ROUTE.dash, 1);
-    if (i > 0) {
-      const a = (i - 1) * 2;
-      index.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+  /**
+   * As setas andam juntas em direção ao destino; cada uma aponta para onde a rota vai logo à frente dela
+   * e gira em torno dessa direção até a face ficar virada para a câmera. Deitadas, as setas de uma esquina
+   * eram vistas de lado e sumiam; assim a curva aparece como um "<" ou ">" de frente.
+   */
+  function placeArrows(time, eye) {
+    const shift = (time * ROUTE.speed) % ROUTE.spacing;
+    let count = 0;
+    for (let d = shift; d < path.length && count < ROUTE.max; d += ROUTE.spacing) {
+      path.sample(d, here);
+      path.sample(d - ROUTE.turnLook, behind);
+      path.sample(d + ROUTE.turnLook, ahead);
+      forward.set(ahead.x - behind.x, 0, ahead.z - behind.z).normalize();
+      face.set(eye.x - here.x, eye.y - ROUTE.y, eye.z - here.z).normalize();
+      face.addScaledVector(forward, -face.dot(forward)); // sem a parte ao longo da seta: ela continua apontando para a rota
+      if (face.y < 0.2) face.y = 0.2; // nunca de cabeça para baixo nem em pé de vez
+      face.normalize();
+      side.crossVectors(forward, face);
+      matrix.makeBasis(forward, face, side).setPosition(here.x, ROUTE.y, here.z);
+      arrows.setMatrixAt(count++, matrix);
     }
+    arrows.count = count;
+    arrows.instanceMatrix.needsUpdate = true;
   }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  geometry.setIndex(index);
-  return geometry;
 }
 
-/** Uma seta ">" por ladrilho; repetida ao longo da faixa. */
-function chevronTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 64;
-  const context = canvas.getContext('2d');
-  context.strokeStyle = '#fff';
-  context.lineWidth = 12;
-  context.lineCap = context.lineJoin = 'round';
-  context.beginPath();
-  context.moveTo(22, 10);
-  context.lineTo(44, 32);
-  context.lineTo(22, 54);
-  context.stroke();
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.anisotropy = 4;
-  return texture;
+/**
+ * A rota deslocada para a mão direita, com a distância acumulada em cada ponto.
+ * `sample(d)` devolve o ponto a `d` metros do começo (busca binária; nada é alocado).
+ */
+function createPath() {
+  let xs = new Float32Array(0);
+  let zs = new Float32Array(0);
+  let at = new Float32Array(0);
+  const path = {
+    length: 0,
+    set(points) {
+      const n = points.length;
+      xs = new Float32Array(n);
+      zs = new Float32Array(n);
+      at = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const prev = points[Math.max(i - 1, 0)];
+        const next = points[Math.min(i + 1, n - 1)];
+        const length = Math.hypot(next.x - prev.x, next.z - prev.z) || 1;
+        xs[i] = points[i].x - ((next.z - prev.z) / length) * ROUTE.lateral;
+        zs[i] = points[i].z + ((next.x - prev.x) / length) * ROUTE.lateral;
+        if (i > 0) at[i] = at[i - 1] + Math.hypot(xs[i] - xs[i - 1], zs[i] - zs[i - 1]);
+      }
+      path.length = n ? at[n - 1] : 0;
+    },
+    sample(d, out) {
+      const n = at.length;
+      if (n === 0) return out;
+      const clamped = Math.min(Math.max(d, 0), path.length);
+      let lo = 0;
+      let hi = n - 1;
+      while (hi - lo > 1) {
+        const mid = (lo + hi) >> 1;
+        if (at[mid] <= clamped) lo = mid;
+        else hi = mid;
+      }
+      const span = at[hi] - at[lo] || 1;
+      const k = Math.min(1, (clamped - at[lo]) / span);
+      out.x = xs[lo] + (xs[hi] - xs[lo]) * k;
+      out.z = zs[lo] + (zs[hi] - zs[lo]) * k;
+      return out;
+    },
+  };
+  return path;
+}
+
+/** Seta ">" com espessura, deitada no plano XZ (face para +Y) e apontando para +X. */
+function chevronGeometry() {
+  const s = ROUTE.size;
+  const arm = s * 0.38; // largura do braço da seta, medida em x
+  const shape = new THREE.Shape();
+  shape.moveTo(-0.45 * s, 0.6 * s);
+  shape.lineTo(0.35 * s, 0);
+  shape.lineTo(-0.45 * s, -0.6 * s);
+  shape.lineTo(-0.45 * s - arm, -0.6 * s);
+  shape.lineTo(0.35 * s - arm, 0);
+  shape.lineTo(-0.45 * s - arm, 0.6 * s);
+  shape.closePath();
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: ROUTE.thickness, bevelEnabled: false });
+  return geometry.rotateX(-Math.PI / 2).translate(0, -ROUTE.thickness / 2, 0);
 }
