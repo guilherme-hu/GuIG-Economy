@@ -139,7 +139,8 @@ export function createBike(config, { city, graph }, spawn) {
     if (impact > config.wallHitMinSpeed) bike.wallHit = impact;
     // Sobra a parte da velocidade que corre ao longo da parede, e o guidão vira para longe dela:
     // a moto raspa e segue, em vez de ficar encalhada de frente para o muro.
-    bike.speed *= Math.max(config.wallBounce, Math.sqrt(1 - headOn * headOn));
+    // headOn pode passar de 1 por arredondamento quando a batida é bem de frente: sem o max, a raiz vira NaN.
+    bike.speed *= Math.max(config.wallBounce, Math.sqrt(Math.max(0, 1 - headOn * headOn)));
     const cross = dirX * nz - dirZ * nx; // > 0: a parede está no sentido em que o heading cresce
     bike.heading = wrapAngle(bike.heading - Math.sign(cross || 1) * headOn * config.wallDeflect);
   }

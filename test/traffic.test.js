@@ -88,7 +88,7 @@ test('regras: furar o vermelho rende uma multa, uma vez só; no verde, nada', ()
   assert.ok(!noCamera.seen.includes('fine'), 'sem radar, furar o vermelho não multa');
 });
 
-test('regras: batida média quebra a moto e cobra o conserto, em veículo ou parede', () => {
+test('regras: batida média quebra a moto e cobra o conserto, em veículo ou parede; parede nunca mata', () => {
   const car = { id: 0, active: true, x: 0, z: 0, heading: 0, speed: 0, length: 4, width: 2.2 };
   const mid = rulesWorld('verde');
   mid.traffic.vehicles.push(car);
@@ -101,9 +101,9 @@ test('regras: batida média quebra a moto e cobra o conserto, em veículo ou par
   Object.assign(wall.bike, { wallHit: 8, speed: 2, road: graph.nearestEdge(0, 0) });
   wall.rules.step(DT);
   assert.ok(wall.seen.includes('damage'));
-  wall.bike.wallHit = 14;
+  wall.bike.wallHit = 25;
   wall.rules.step(DT);
-  assert.ok(wall.seen.includes('crash') && wall.bike.frozen, 'parede acima de 40 km/h é acidente');
+  assert.ok(!wall.seen.includes('crash') && !wall.bike.frozen, 'parede, mesmo a 90 km/h, não é acidente');
 });
 
 test('regras: bater forte num veículo é acidente; encostar devagar é só um tranco', () => {

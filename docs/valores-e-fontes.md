@@ -53,7 +53,7 @@ O jogo comprime a realidade: uma cidade de 1,6 km e um turno de 15 minutos. Duas
 | Aumento das contas | +3% por dia | Recurso de jogo: a pressão cresce a cada dia | `shift.billsGrowth` |
 | Despejo | 2 dias seguidos sem pagar as contas | Recurso de jogo | `shift.missedDaysToLose` |
 | Nota | Começa em 4,80; atraso tira 0,05 a 0,2; cancelamento tira 0,25; abaixo de 4,20 a conta é desativada | A nota dos apps é uma média: uma entrega ruim pesa pouco, várias seguidas derrubam | `economy.rating*` |
-| Batida | Até 20 km/h: tranco. 20–40 km/h: conserto (R$ 30). Acima de 40 km/h: acidente. Se foi o carro que bateu na moto (ele estava mais rápido), só é acidente acima de 60 km/h | Recurso de jogo: o perigo fica com quem corre | `rules.crashSpeed`, `rules.crashSpeedWhenHit` |
+| Batida | Em veículo: até 20 km/h, tranco; 20–40 km/h, conserto (R$ 30); acima de 40 km/h, acidente. Se foi o carro que bateu na moto (ele estava mais rápido), só é acidente acima de 60 km/h. No limite da calçada: tranco ou conserto, nunca acidente | Recurso de jogo: o perigo fica com quem corre | `rules.crashSpeed`, `rules.crashSpeedWhenHit` |
 
 **Por que as multas são 1/10 do valor real.** Uma multa real de R$ 293,47 equivale a **cerca de 10 horas de faturamento bruto** de um entregador (a R$ 28–31/h), ou quase três turnos do jogo. Com o valor real, a primeira multa já levaria ao despejo e o jogo viraria punição pura. A 1/10, uma multa de sinal (R$ 29,35) consome mais ou menos o lucro de um bom dia, e a da calçada (R$ 88,04) passa disso; a proporção entre as infrações é a mesma do CTB. **Na apresentação vale citar o valor real**: no jogo a multa dói; na vida real, ela é dez vezes maior.
 

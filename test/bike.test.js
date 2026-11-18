@@ -162,3 +162,18 @@ test('freada trava a traseira, conserva a trajetória em reta e recupera aderên
     assert.equal(bike.slipAngle, 0);
   }
 });
+
+test('batendo bem de frente no limite da calçada, a posição nunca vira NaN', () => {
+  const city = generateCity(config.city, createRng(config.seed).fork('cidade'));
+  const graph = createGraph(city);
+  const streets = city.edges.filter((e) => !e.bridge && e.length > 60).slice(0, 40);
+  for (const edge of streets) {
+    for (const kmh of [30, 60, 90]) {
+      const start = graph.pointOnEdge(edge.id, 0.5, edge.halfWidth * 0.5);
+      const bike = createBike(config.bike, { city, graph }, { ...start, heading: Math.atan2(edge.dir.z, edge.dir.x) + Math.PI / 2 });
+      bike.speed = kmh / 3.6;
+      for (let i = 0; i < 90; i++) bike.step({ throttle: 1, steer: 0, brake: false }, DT);
+      assert.ok(Number.isFinite(bike.x) && Number.isFinite(bike.z) && Number.isFinite(bike.speed), `via ${edge.id} a ${kmh} km/h`);
+    }
+  }
+});
