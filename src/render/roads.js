@@ -111,7 +111,10 @@ function createBridge(city, cfg, edge) {
     bridge.add(mesh);
   };
   box(concrete, edge.length, 1.2, wide * 2 + 0.8, 0, -0.6, 0);
-  for (const side of [-1, 1]) box(rail, edge.length, 1.1, 0.35, 0, 0.55, side * (wide + 0.2));
+  // O guarda-corpo para na borda de cada cruzamento: o eixo vai de centro a centro e invadiria a via transversal.
+  const railLength = edge.length - a.radius - b.radius;
+  const railCenter = (a.radius - b.radius) / 2;
+  for (const side of [-1, 1]) box(rail, railLength, 1.1, 0.35, railCenter, 0.55, side * (wide + 0.2));
   for (const t of [-0.22, 0.22]) box(concrete, 2.2, 5, wide * 1.6, edge.length * t, -3.6, 0);
   return bridge;
 }
