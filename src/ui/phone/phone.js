@@ -418,6 +418,11 @@ export function createPhone(root, { onAccept = () => {}, onDecline = () => {} } 
     open: () => setOpen(true),
     close: () => setOpen(false),
     toggle: () => setOpen(!open),
+    /** Fora do turno (menu, extrato) o celular some; só os avisos continuam aparecendo. */
+    setVisible(on) {
+      r.handle.hidden = !on;
+      if (!on) setOpen(false);
+    },
     showTab,
     update,
     notify,

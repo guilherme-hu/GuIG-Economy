@@ -7,7 +7,7 @@ import * as fmt from './format.js';
 import { mount, refs, setAttr } from './phone/dom.js';
 import { icons } from './phone/icons.js';
 
-const NAMES = ['menu', 'pausa', 'extrato', 'fim'];
+const NAMES = ['menu', 'pausa', 'extrato', 'fim', 'config'];
 const s = copy.statement;
 const g = copy.gameOver;
 
@@ -28,12 +28,28 @@ const controls = `
 export const wordmark = () =>
   `<span class="wordmark">${icons.bolt}<span class="wordmark__text"><i>rapi</i>dão</span></span>`;
 
+const gear = (extra = '') =>
+  `<button class="gear${extra}" type="button" data-action="openSettings" aria-label="${copy.settings.open}" title="${copy.settings.open}">${icons.gear}</button>`;
+
+const settingRows = copy.settings.options
+  .map(
+    ({ name, label, choices }) => `
+  <div class="settings__row">
+    <span>${label}</span>
+    <div class="seg" role="group" aria-label="${label}">
+      ${choices.map(([value, text]) => `<button type="button" data-setting="${name}" data-value="${value}">${text}</button>`).join('')}
+    </div>
+  </div>`,
+  )
+  .join('');
+
 const statRow = (icon, label, ref) => `
 <div class="sheet__row"><span class="sheet__icon">${icons[icon]}</span><dt>${label}</dt><dd class="num" data-ref="${ref}"></dd></div>`;
 
 const template = `
 <div class="ui screens" hidden>
   <section class="screen screen--menu" data-screen="menu">
+    ${gear(' gear--float')}
     <div class="menu__main">
       <h1 class="menu__title"><span>G</span>u<span>IG</span> Economy</h1>
       <p class="menu__subtitle">${copy.game.subtitle}</p>
@@ -57,12 +73,13 @@ const template = `
 
   <section class="screen screen--pausa" data-screen="pausa">
     <div class="sheet light pause">
-      <h1>${copy.pause.title}</h1>
+      <header class="sheet__head"><h1>${copy.pause.title}</h1>${gear()}</header>
       <p>${copy.pause.text}</p>
       <button class="btn btn--dark btn--lg btn--block" type="button" data-action="onResume" data-primary>
         ${copy.pause.resume}<span class="kbd">Esc</span>
       </button>
-      <button class="btn btn--ghost btn--lg btn--block" type="button" data-action="onRestart">${copy.pause.restart}</button>
+      <button class="btn btn--ghost btn--lg btn--block" type="button" data-action="onMenu">${copy.pause.toMenu}</button>
+      <p class="sheet__fine">${copy.pause.toMenuNote}</p>
       <h2>${copy.controls.title}</h2>
       ${controls}
     </div>
@@ -117,10 +134,21 @@ const template = `
           ${statRow('cash', g.stats.earned, 'over_earned')}
           ${statRow('clock', g.stats.perHour, 'over_perHour')}
         </dl>
-        <button class="btn btn--dark btn--lg btn--block" type="button" data-action="onRestart" data-primary>
-          ${g.restart}<span class="kbd">Enter</span>
+        <button class="btn btn--dark btn--lg btn--block" type="button" data-action="onMenu" data-primary>
+          ${g.toMenu}<span class="kbd">Enter</span>
         </button>
       </div>
+    </div>
+  </section>
+
+  <section class="screen screen--config" data-screen="config">
+    <div class="sheet light settings">
+      <h1>${copy.settings.title}</h1>
+      <p>${copy.settings.text}</p>
+      <div class="settings__rows">${settingRows}</div>
+      <button class="btn btn--dark btn--lg btn--block" type="button" data-action="closeSettings" data-primary>
+        ${copy.settings.back}<span class="kbd">Esc</span>
+      </button>
     </div>
   </section>
 </div>`;
@@ -129,9 +157,27 @@ export function createScreens(root, callbacks = {}) {
   const node = mount(root, template);
   const r = refs(node);
   let current = null;
+  let back = null; // tela de onde as configurações foram abertas
 
+  const own = {
+    openSettings: () => screens.show('config', callbacks.getSettings()),
+    closeSettings: () => screens.show(back),
+  };
   for (const button of node.querySelectorAll('[data-action]')) {
-    button.addEventListener('click', () => callbacks[button.dataset.action]?.());
+    const action = button.dataset.action;
+    button.addEventListener('click', () => (own[action] ?? callbacks[action])?.());
+  }
+  for (const button of node.querySelectorAll('[data-setting]')) {
+    button.addEventListener('click', () => {
+      callbacks.onSetting?.(button.dataset.setting, button.dataset.value);
+      fillSettings(callbacks.getSettings());
+    });
+  }
+
+  function fillSettings(values) {
+    for (const button of node.querySelectorAll('[data-setting]')) {
+      button.setAttribute('aria-pressed', String(values[button.dataset.setting] === button.dataset.value));
+    }
   }
 
   function fillStatement({ day = 1, statement = {}, bills = 0, metBills } = {}) {
@@ -178,15 +224,19 @@ export function createScreens(root, callbacks = {}) {
     r.over_perHour.textContent = fmt.money(stats.perHour);
   }
 
-  return {
+  const screens = {
     get current() {
       return current;
     },
-    /** @param {'menu'|'pausa'|'extrato'|'fim'} name */
+    /** @param {'menu'|'pausa'|'extrato'|'fim'|'config'} name */
     show(name, data) {
       if (!NAMES.includes(name)) return;
       if (name === 'extrato') fillStatement(data);
       if (name === 'fim') fillGameOver(data);
+      if (name === 'config') {
+        if (current !== 'config') back = current;
+        fillSettings(data);
+      }
       current = name;
       node.dataset.screen = name;
       node.hidden = false;
@@ -199,5 +249,8 @@ export function createScreens(root, callbacks = {}) {
       delete node.dataset.screen;
       if (node.contains(document.activeElement)) document.activeElement.blur();
     },
+    /** Esc nas configurações volta para a tela anterior. */
+    closeSettings: () => own.closeSettings(),
   };
+  return screens;
 }

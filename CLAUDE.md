@@ -39,7 +39,7 @@ src/
   render/  scene.js (céu, luz do fim de tarde à noite, sombras)  assets.js
            cityView.js (+ terrain.js  roads.js  buildings.js  streetLights.js  batch.js, as partes dele)
            bikeView.js  crashView.js  trafficView.js  markersView.js (destino + rota no chão)  camera.js  effects.js
-  ui/      base.css  tokens.css  phone/  hud.js  screens.js  tutorial.js
+  ui/      base.css  tokens.css  phone/  hud.js  screens.js (menu, pausa, extrato, fim, configurações)  settings.js  tutorial.js
   audio/   audio.js
 test/      um arquivo por módulo de sim/
 ```

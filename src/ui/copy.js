@@ -46,7 +46,21 @@ export const copy = {
     title: 'Pausado',
     text: 'O turno espera. As contas, não.',
     resume: 'Voltar ao turno',
-    restart: 'Recomeçar do dia 1',
+    toMenu: 'Sair para o menu',
+    toMenuNote: 'O progresso do turno se perde e o jogo recomeça no dia 1.',
+  },
+
+  settings: {
+    open: 'Configurações',
+    title: 'Configurações',
+    text: 'Gráficos mais leves deixam o jogo mais fluido em computadores modestos.',
+    back: 'Voltar',
+    options: [
+      { name: 'sound', label: 'Som', choices: [['on', 'Ligado'], ['off', 'Desligado']] },
+      { name: 'shadows', label: 'Sombras', choices: [['on', 'Ligadas'], ['off', 'Desligadas']] },
+      { name: 'resolution', label: 'Resolução', choices: [['alta', 'Alta'], ['leve', 'Leve']] },
+      { name: 'fps', label: 'Limite de quadros', choices: [['30', '30 fps'], ['60', '60 fps'], ['0', 'Sem limite']] },
+    ],
   },
 
   hud: {
@@ -263,6 +277,6 @@ export const copy = {
       earned: 'Total recebido',
       perHour: 'Média por hora',
     },
-    restart: 'Tentar de novo',
+    toMenu: 'Voltar ao menu',
   },
 };
