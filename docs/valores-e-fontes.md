@@ -113,16 +113,18 @@ E no cenário com sinais e sem carros, comparando perfis (3 dias × 3 sementes, 
 |---|---|---|---|---|
 | cauteloso (respeita tudo, no limite da via) | 6–9 | R$ 26 a R$ 59 | nenhuma | 2 de 9 dias; despejado numa das 3 sementes |
 | bom (rápido, respeita sinal) | 7–10 | R$ 35 a R$ 69 | nenhuma | 2 de 9 dias; despejado em 2 das 3 sementes |
-| apressado (fura o vermelho onde não há radar e acelera no amarelo) | 9–12 | R$ 36 a R$ 105 | 4 em 9 dias | **6 de 9 dias**; nunca despejado |
+| apressado (fura o vermelho onde não há radar e acelera no amarelo) | 9–12 | R$ 22 a R$ 78 | 6, em 5 dos 9 dias | **6 de 9 dias**; nunca despejado |
 
 No trânsito completo (3 sementes, as duas estratégias), o robô cauteloso sofreu acidente em 3 de 6 rodadas e teve a conta desativada nas outras 3, travado em impasses. O apressado bateu em 4 de 6 rodadas, quase sempre nos primeiros 5 minutos.
 
 O que isso mostra:
 - **Jogando dentro da lei dá lucro, mas não dá para viver.** O cauteloso fecha todo dia no positivo e quase nunca alcança a conta de um salário mínimo: fica entre R$ 26 e R$ 59 quando precisa de R$ 46,80 a R$ 49,65.
-- **Furar sinal compensa no bolso**: o apressado ganha quase o dobro e paga as contas em 2 de cada 3 dias, mesmo levando multa. É o incentivo perverso que o jogo quer mostrar.
+- **Furar sinal compensa no bolso**: o apressado ganha mais e paga as contas em 2 de cada 3 dias, mesmo levando multa. É o incentivo perverso que o jogo quer mostrar.
 - **E furar sinal cobra na pele**: no trânsito de verdade, ele bate nos primeiros minutos.
-- **Uma multa apaga o dia.** Dos quatro dias em que o apressado foi multado (R$ 29,35), em três ele não pagou as contas.
+- **Uma multa apaga o dia.** Dos cinco dias em que o apressado foi multado (R$ 29,35 cada), em três ele não pagou as contas.
 
 **Ajustes do M7.** O amarelo passou de 2,2 s para 3 s, o mínimo que o Manual Brasileiro de Sinalização Semafórica recomenda. E o robô cauteloso tinha um defeito: decidia parar no amarelo, mas perto da linha a conta de "dá para parar" mudava de resposta e ele acelerava de novo, entrando no vermelho. Era isso que gerava as multas de quem "respeita todo sinal" na tabela anterior. Agora ele mantém a decisão de parar, e o perfil apressado ganhou a opção de nunca parar no amarelo (`stopOnYellow: false`).
+
+Depois disso a moto passou a fazer curvas mais fechadas (raio de ~12 m a 60 km/h, antes ~17 m). A tabela acima já foi rodada com a curva nova.
 
 Para rodar: `node scripts/balance.js 3 cauteloso+sinais,bom+sinais,apressado+sinais 3`.

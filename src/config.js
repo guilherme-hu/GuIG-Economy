@@ -72,11 +72,11 @@ export const config = {
     hardBrake: 19,
     skid: { onsetSpeed: 6, releaseSpeed: 1.5, fullSpeed: 15, maxSlip: 0.44, gripRecovery: 2.5 },
     drag: 0.35,
-    steerRate: 2.4, // rad/s em baixa velocidade
+    steerRate: 3, // rad/s em baixa velocidade
     steerFullSpeed: 2, // abaixo disso a moto gira menos (parada não gira)
-    steerResponse: 7, // quão rápido o guidão segue a tecla
-    maxLateralAccel: 16, // limita a curva em alta velocidade (m/s²)
-    maxLean: 0.6,
+    steerResponse: 10, // quão rápido o guidão segue a tecla
+    maxLateralAccel: 24, // limita a curva em alta velocidade (m/s²): 60 km/h faz a curva num raio de ~12 m
+    maxLean: 0.85, // ~49°: a moto deita mais nas curvas fechadas
     leanResponse: 3.5,
     radius: 0.55,
     offRoadMargin: 3.2, // calçada: até onde dá para sair do asfalto
