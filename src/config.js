@@ -162,6 +162,7 @@ export const config = {
     crawlSpeed: 3, // m/s: abaixo disso conta como parado na linha
     spawnSpan: 0.6, // nasce nos primeiros 60% da via
     junctionSpeed: kmh(30), // velocidade com que atravessam cruzamentos (e dobram esquinas)
+    uTurnSpeed: kmh(12), // retorno no fim de um beco sem saída
     rerouteAfter: 3, // s esperando a saída liberar antes de escolher outra rua
     junctionHold: 6, // s em que uma faixa pode mandar carros seguidos num cruzamento
     accel: 5,
@@ -203,6 +204,7 @@ export const config = {
     crashScreenDelay: 2.4, // s de efeito do acidente antes da tela de fim
     repairCooldown: 2, // s: raspar na parede não cobra um conserto por passo
     cameraShare: 0.3, // fração dos cruzamentos com semáforo que têm radar
+    cameraFreeNearHome: 150, // m: os primeiros semáforos saindo de casa nunca têm radar (não começar o dia parado por medo da multa)
     cameraWarnDistance: 180, // m: o GPS avisa do radar a partir daqui
     cameraWarnCone: 0.8, // cosseno do ângulo à frente em que o radar conta
     // Multas a 1/10 do valor real do CTB (2025), mantendo a proporção entre elas: gravíssima = R$ 293,47; calçada, ×3.

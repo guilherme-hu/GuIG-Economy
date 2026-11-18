@@ -121,3 +121,44 @@ test('regras: bater forte num veículo é acidente; encostar devagar é só um t
   assert.ok(slow.seen.includes('bump') && !slow.bike.frozen);
   assert.ok(Math.abs(slow.bike.z) >= 1.1 + 0.55 - 1e-6, 'a moto foi empurrada para fora da lataria');
 });
+
+test('regras: os semáforos perto de casa nunca têm radar; o resto da cidade tem', () => {
+  const home = city.pois[city.homeId];
+  for (let seed = 1; seed <= 20; seed++) {
+    const rules = createRules({ city, signals: {}, traffic: { vehicles: [] }, bike: {}, economy: {}, events: createEvents(), rng: createRng(seed).fork('radares'), config: config.rules });
+    for (const id of rules.cameras) {
+      const node = city.nodes[id];
+      assert.ok(Math.hypot(node.x - home.x, node.z - home.z) >= config.rules.cameraFreeNearHome, `radar a ${id} perto de casa`);
+    }
+    assert.ok(rules.cameras.size > 10);
+  }
+});
+
+test('trânsito: no cruzamento o carro faz a curva, sem andar de lado nem girar de uma vez', () => {
+  const signals = createSignals(city, config.signals);
+  const traffic = createTraffic({ city, graph, signals, rng: createRng(7).fork('trânsito'), config: config.traffic });
+  const focus = { x: 0, z: 0, heading: 0, speed: 0 };
+  const last = new Map();
+  let worstSlide = 0;
+  let worstTurn = 0;
+  for (let i = 0; i < 60 * 60; i++) {
+    signals.step(DT);
+    traffic.step(DT, focus);
+    for (const v of traffic.vehicles) {
+      const before = last.get(v.id);
+      if (!v.active) {
+        last.delete(v.id);
+        continue;
+      }
+      if (before && i > 300) {
+        const dx = v.x - before.x;
+        const dz = v.z - before.z;
+        worstSlide = Math.max(worstSlide, Math.abs(-dx * Math.sin(v.heading) + dz * Math.cos(v.heading)) / DT);
+        worstTurn = Math.max(worstTurn, Math.abs(Math.atan2(Math.sin(v.heading - before.h), Math.cos(v.heading - before.h))) / DT);
+      }
+      last.set(v.id, { x: v.x, z: v.z, h: v.heading });
+    }
+  }
+  assert.ok(worstSlide < 2, `andou de lado a ${worstSlide.toFixed(1)} m/s`);
+  assert.ok(worstTurn < 6, `girou a ${worstTurn.toFixed(1)} rad/s`);
+});

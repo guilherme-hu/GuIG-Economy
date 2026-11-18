@@ -12,7 +12,10 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   const vehicles = Array.from({ length: cfg.poolSize }, (_, id) => ({
     id, active: false, type: 'carro', model: '', x: 0, z: 0, heading: 0, speed: 0, length: 4, width: 2,
     edge: 0, forward: true, s: 0, lane: 0, pace: 1, runsRed: false, reckless: false, stuck: 0, inNode: -1, next: -1,
+    // Curva pelo cruzamento: Bézier cúbica da linha de retenção até a saída, alinhada com as duas faixas.
+    turnNode: -1, turnIn: 0, turnSpan: 1, uTurn: false, p0x: 0, p0z: 0, c1x: 0, c1z: 0, c2x: 0, c2z: 0, p3x: 0, p3z: 0,
   }));
+  const exitPoint = { x: 0, z: 0 };
   // Um cruzamento por vez pertence a UMA faixa de chegada: quem vem das outras espera esvaziar.
   // É isso que impede os carros de se atravessarem ao cruzar e ao virar.
   const inside = new Int16Array(nodes.length); // veículos dentro de cada cruzamento
@@ -68,8 +71,10 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
     if (wait) free = Math.min(free, stopAt - v.s);
 
     // Chega no cruzamento em velocidade de curva: sem isso entraria a 100 km/h numa rua curta com sinal fechado.
-    const cruise = Math.min(edge.speedLimit * v.pace, Math.sqrt(cfg.junctionSpeed ** 2 + 2 * cfg.brake * Math.max(0, stopAt - v.s)));
-    const target = Math.min(cruise, Math.sqrt(2 * cfg.brake * Math.max(0, free)));
+    const turnSpeed = nextEdge(v, endNode) === v.edge ? cfg.uTurnSpeed : cfg.junctionSpeed;
+    const cruise = Math.min(edge.speedLimit * v.pace, Math.sqrt(turnSpeed ** 2 + 2 * cfg.brake * Math.max(0, stopAt - v.s)));
+    let target = Math.min(cruise, Math.sqrt(2 * cfg.brake * Math.max(0, free)));
+    if (v.turnNode >= 0 && v.uTurn) target = Math.min(target, cfg.uTurnSpeed); // termina o retorno devagar
     v.speed = target < v.speed ? Math.max(target, v.speed - cfg.hardBrake * dt) : Math.min(target, v.speed + cfg.accel * dt);
     v.s += v.speed * dt;
     if (wait) v.s = Math.min(v.s, stopAt); // a linha de retenção não deixa "vazar" para dentro do cruzamento
@@ -198,14 +203,98 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
   function place(v, k) {
     const edge = edges[v.edge];
     const side = v.forward ? 1 : -1;
-    const laneWidth = edge.halfWidth / edge.lanes;
-    const lateral = (v.reckless ? v.lane * laneWidth + cfg.motoLine : (v.lane + 0.5) * laneWidth) * side;
-    const t = Math.min(1, Math.max(0, v.s / edge.length));
-    graph.pointOnEdge(v.edge, v.forward ? t : 1 - t, lateral, point);
-    const heading = Math.atan2(edge.dir.z * side, edge.dir.x * side);
+    let heading;
+    const u = turnProgress(v);
+    if (u >= 0) heading = pointOnCurve(v, u, point);
+    else {
+      lanePoint(v.edge, v.forward, v.s, v.lane, v.reckless, point);
+      heading = Math.atan2(edge.dir.z * side, edge.dir.x * side);
+    }
     v.x += (point.x - v.x) * k;
     v.z += (point.z - v.z) * k;
     v.heading += Math.atan2(Math.sin(heading - v.heading), Math.cos(heading - v.heading)) * k;
+  }
+
+  /** Ponto da faixa `lane` a `s` metros do começo da via, no sentido de `forward`. */
+  function lanePoint(edgeId, forward, s, lane, reckless, out) {
+    const edge = edges[edgeId];
+    const laneWidth = edge.halfWidth / edge.lanes;
+    const lateral = (reckless ? lane * laneWidth + cfg.motoLine : (lane + 0.5) * laneWidth) * (forward ? 1 : -1);
+    const t = Math.min(1, Math.max(0, s / edge.length));
+    return graph.pointOnEdge(edgeId, forward ? t : 1 - t, lateral, out);
+  }
+
+  /**
+   * Fração (0..1) da curva pelo cruzamento em que o veículo está, ou −1 fora dela.
+   * A curva começa na linha de retenção da via de chegada e termina à mesma distância do nó na via de saída.
+   */
+  function turnProgress(v) {
+    const edge = edges[v.edge];
+    const endNode = v.forward ? edge.b : edge.a;
+    const startNode = v.forward ? edge.a : edge.b;
+    const radius = nodes[startNode].radius;
+    // Numa via curta as duas curvas se encostam: termina a do cruzamento de trás antes de começar a da frente.
+    if (v.turnNode === startNode && v.s < radius) return Math.min(1, (v.turnIn + v.s) / v.turnSpan);
+    const entry = Math.max(edge.length - nodes[endNode].radius, Math.min(radius, edge.length / 2));
+    if (v.s >= entry) {
+      if (v.turnNode !== endNode) planTurn(v, endNode, entry);
+      return Math.min(1, (v.s - entry) / v.turnSpan);
+    }
+    v.turnNode = -1;
+    return -1;
+  }
+
+  /** Monta a curva: sai na direção da faixa de chegada e chega na direção da faixa de saída, sem tranco nas pontas. */
+  function planTurn(v, nodeId, entry) {
+    const next = nextEdge(v, nodeId);
+    const out = edges[next];
+    const forward = out.a === nodeId;
+    const radius = nodes[nodeId].radius;
+    lanePoint(v.edge, v.forward, entry, v.lane, v.reckless, point);
+    lanePoint(next, forward, radius, Math.min(v.lane, out.lanes - 1), v.reckless, exitPoint);
+    const inSide = v.forward ? 1 : -1;
+    const outSide = forward ? 1 : -1;
+    const dx0 = edges[v.edge].dir.x * inSide;
+    const dz0 = edges[v.edge].dir.z * inSide;
+    const dx3 = out.dir.x * outSide;
+    const dz3 = out.dir.z * outSide;
+    const gap = Math.hypot(exitPoint.x - point.x, exitPoint.z - point.z);
+    // Braços das tangentes: 0,55 da distância até o canto aproxima um arco; num retorno, 2/3 da largura faz o meio círculo.
+    let arm0 = gap / 3;
+    let arm3 = gap / 3;
+    const cross = dx0 * dz3 - dz0 * dx3;
+    v.uTurn = next === v.edge;
+    if (v.uTurn) arm0 = arm3 = Math.max(gap * 0.67, 2);
+    else if (Math.abs(cross) > 0.15) {
+      arm0 = Math.abs(((exitPoint.x - point.x) * dz3 - (exitPoint.z - point.z) * dx3) / cross) * 0.55;
+      arm3 = Math.abs(((exitPoint.x - point.x) * dz0 - (exitPoint.z - point.z) * dx0) / cross) * 0.55;
+    }
+    v.turnNode = nodeId;
+    v.turnIn = edges[v.edge].length - entry; // metros da curva ainda na via de chegada
+    v.turnSpan = v.turnIn + radius;
+    v.p0x = point.x;
+    v.p0z = point.z;
+    v.c1x = point.x + dx0 * arm0;
+    v.c1z = point.z + dz0 * arm0;
+    v.c2x = exitPoint.x - dx3 * arm3;
+    v.c2z = exitPoint.z - dz3 * arm3;
+    v.p3x = exitPoint.x;
+    v.p3z = exitPoint.z;
+  }
+
+  /** Ponto e direção da curva em `u`; devolve o heading. */
+  function pointOnCurve(v, u, out) {
+    const w = 1 - u;
+    const b0 = w * w * w;
+    const b1 = 3 * w * w * u;
+    const b2 = 3 * w * u * u;
+    const b3 = u * u * u;
+    out.x = b0 * v.p0x + b1 * v.c1x + b2 * v.c2x + b3 * v.p3x;
+    out.z = b0 * v.p0z + b1 * v.c1z + b2 * v.c2z + b3 * v.p3z;
+    const tx = w * w * (v.c1x - v.p0x) + 2 * w * u * (v.c2x - v.c1x) + u * u * (v.p3x - v.c2x);
+    const tz = w * w * (v.c1z - v.p0z) + 2 * w * u * (v.c2z - v.c1z) + u * u * (v.p3z - v.c2z);
+    if (tx * tx + tz * tz < 1e-6) return v.heading;
+    return Math.atan2(tz, tx);
   }
 
   /** Veículo travado há muito tempo e longe do jogador some, para um nó cego não virar engarrafamento eterno. */
@@ -230,7 +319,7 @@ export function createTraffic({ city, graph, signals, rng, config: cfg }) {
       Object.assign(v, { reckless: false }, moto ? cfg.moto : rng.pick(cfg.fleet), {
         active: true, edge: edge.id, forward, lane: rng.int(0, edge.lanes - 1),
         pace: moto ? rng.range(...cfg.motoPace) : 1 + rng.range(-cfg.speedVariance, cfg.speedVariance),
-        runsRed: rng.chance(moto ? cfg.motoRunRed : cfg.runRedShare), stuck: 0, inNode: -1, next: -1,
+        runsRed: rng.chance(moto ? cfg.motoRunRed : cfg.runRedShare), stuck: 0, inNode: -1, next: -1, turnNode: -1,
       });
       v.s = t * edge.length;
       v.speed = 0; // nasce parado: longe da vista, e nunca em cima de um sinal vermelho sem espaço para frear
