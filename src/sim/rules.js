@@ -5,7 +5,10 @@
  */
 export function createRules({ city, signals, traffic, bike, economy, events, rng, config: cfg }) {
   const { edges, nodes } = city;
-  const cameras = new Set(nodes.filter((node) => node.signal && rng.chance(cfg.cameraShare)).map((node) => node.id));
+  const home = city.pois[city.homeId];
+  const nearHome = (node) => home && Math.hypot(node.x - home.x, node.z - home.z) < cfg.cameraFreeNearHome;
+  // O sorteio vem antes do filtro: assim os radares do resto da cidade não mudam.
+  const cameras = new Set(nodes.filter((node) => node.signal && rng.chance(cfg.cameraShare) && !nearHome(node)).map((node) => node.id));
   let insideNode = -1; // cruzamento em que a moto está
   let approach = -1; // via pela qual ela vinha antes de entrar nele
   let wrongWay = 0; // segundos seguidos na contramão

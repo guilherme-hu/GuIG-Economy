@@ -122,6 +122,18 @@ test('regras: bater forte num veículo é acidente; encostar devagar é só um t
   assert.ok(Math.abs(slow.bike.z) >= 1.1 + 0.55 - 1e-6, 'a moto foi empurrada para fora da lataria');
 });
 
+test('regras: os semáforos perto de casa nunca têm radar; o resto da cidade tem', () => {
+  const home = city.pois[city.homeId];
+  for (let seed = 1; seed <= 20; seed++) {
+    const rules = createRules({ city, signals: {}, traffic: { vehicles: [] }, bike: {}, economy: {}, events: createEvents(), rng: createRng(seed).fork('radares'), config: config.rules });
+    for (const id of rules.cameras) {
+      const node = city.nodes[id];
+      assert.ok(Math.hypot(node.x - home.x, node.z - home.z) >= config.rules.cameraFreeNearHome, `radar a ${id} perto de casa`);
+    }
+    assert.ok(rules.cameras.size > 10);
+  }
+});
+
 test('trânsito: no cruzamento o carro faz a curva, sem andar de lado nem girar de uma vez', () => {
   const signals = createSignals(city, config.signals);
   const traffic = createTraffic({ city, graph, signals, rng: createRng(7).fork('trânsito'), config: config.traffic });
