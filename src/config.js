@@ -76,7 +76,7 @@ export const config = {
     steerFullSpeed: 2, // abaixo disso a moto gira menos (parada não gira)
     steerResponse: 10, // quão rápido o guidão segue a tecla
     maxLateralAccel: 24, // limita a curva em alta velocidade (m/s²): 60 km/h faz a curva num raio de ~12 m
-    maxLean: 0.85, // ~49°: a moto deita mais nas curvas fechadas
+    maxLean: 0.7, // ~40°: só o visual; a curva é limitada por maxLateralAccel
     leanResponse: 3.5,
     radius: 0.55,
     offRoadMargin: 3.2, // calçada: até onde dá para sair do asfalto

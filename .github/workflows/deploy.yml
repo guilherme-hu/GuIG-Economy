@@ -1,22 +1,22 @@
 name: Testar e publicar no GitHub Pages
 
+# O Pages serve a branch gh-pages ("deploy from branch"). Este workflow faz o mesmo que `npm run deploy`:
+# testa, gera dist/ e substitui a gh-pages por um único commit com o build.
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,16 +26,12 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publicar dist/ na gh-pages
+        working-directory: dist
+        run: |
+          touch .nojekyll
+          git init -q -b gh-pages
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "deploy: ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
