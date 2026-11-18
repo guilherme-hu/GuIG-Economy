@@ -162,6 +162,7 @@ export const config = {
     crawlSpeed: 3, // m/s: abaixo disso conta como parado na linha
     spawnSpan: 0.6, // nasce nos primeiros 60% da via
     junctionSpeed: kmh(30), // velocidade com que atravessam cruzamentos (e dobram esquinas)
+    uTurnSpeed: kmh(12), // retorno no fim de um beco sem saída
     rerouteAfter: 3, // s esperando a saída liberar antes de escolher outra rua
     junctionHold: 6, // s em que uma faixa pode mandar carros seguidos num cruzamento
     accel: 5,
