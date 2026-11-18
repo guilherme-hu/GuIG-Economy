@@ -14,6 +14,7 @@ export function createAutopilot({ city, graph, bike, config: cfg, traffic = null
   let cornerSpeeds = []; // velocidade segura para passar por cada ponto da rota
   let junctions = []; // cruzamentos da rota: { at /* índice do ponto no centro dele */, nodeId, edgeId /* via de chegada */ }
   let passing = -1; // cruzamento que ele já decidiu atravessar
+  let stopping = -1; // cruzamento em que ele já decidiu parar no amarelo
   let turningAround = 0; // sentido do retorno em andamento (0 = nenhum)
   let stalled = 0; // segundos parado querendo andar
   let backingUp = 0; // segundos de ré que faltam para desencalhar
@@ -42,6 +43,7 @@ export function createAutopilot({ city, graph, bike, config: cfg, traffic = null
     follow(route) {
       junctions = [];
       passing = -1;
+      stopping = -1;
       path = rightLane(route);
       lengths = [0];
       for (let i = 1; i < path.length; i++) lengths.push(lengths[i - 1] + Math.hypot(path[i].x - path[i - 1].x, path[i].z - path[i - 1].z));
@@ -249,7 +251,11 @@ export function createAutopilot({ city, graph, bike, config: cfg, traffic = null
     const light = signals.stateFor(nodeId, edgeId);
     const pace = Math.abs(bike.speed);
     const canStop = (pace * pace) / (2 * cfg.brake * 1.5) < toLine;
-    return light === 'vermelho' || (light === 'amarelo' && canStop);
+    // Decidiu parar no amarelo, mantém a decisão: perto da linha, ainda freando, o "dá para parar" vira "não dá"
+    // e ele acelerava de volta, entrando no cruzamento já no vermelho.
+    if (light === 'amarelo' && cfg.stopOnYellow && (canStop || stopping === nodeId)) stopping = nodeId;
+    else if (light !== 'vermelho') stopping = -1;
+    return light === 'vermelho' || stopping === nodeId;
   }
 
   /**

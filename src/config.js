@@ -111,6 +111,7 @@ export const config = {
     backUpTime: 0.9, // s de ré para desencalhar
     // Comportamento no trânsito (só vale quando o piloto recebe traffic/signals):
     obeyLights: 'sempre', // 'sempre' | 'radar' (fura onde não há radar) | 'nunca'
+    stopOnYellow: true, // false = acelera no amarelo e só freia no vermelho
     carLook: 45, // m à frente em que ele procura veículos
     carClearance: 0.6, // m de folga lateral (o raio da moto e um pouco): abaixo disso o veículo está no caminho
     followGap: 3, // m que ele deixa atrás do veículo da frente, parado
@@ -135,14 +136,14 @@ export const config = {
       cauteloso: { laneSplit: false }, // respeita sinal e preferência, anda no limite da via, não costura
       // Jogando bem: rápido, costura no corredor, mas respeita sinal e cruza com cuidado. É a referência de "jogador bom".
       bom: { cruise: 0.9 * 1.15, crossSpeed: kmh(40), followTime: 0.6, cornerGrip: 6, brake: 7.5 },
-      apressado: { cruise: 0.9 * 1.4, cornerGrip: 8, brake: 8.4, obeyLights: 'radar', followGap: 1.5, followTime: 0.4, crossSpeed: kmh(55), splitSpeed: kmh(55) }, // fura onde não há radar
+      apressado: { cruise: 0.9 * 1.4, cornerGrip: 8, brake: 8.4, obeyLights: 'radar', stopOnYellow: false, followGap: 1.5, followTime: 0.4, crossSpeed: kmh(55), splitSpeed: kmh(55) }, // fura onde não há radar e acelera no amarelo
       kamikaze: { cruise: 0.9 * 1.4, cornerGrip: 8, brake: 8.4, obeyLights: 'nunca', yieldToTraffic: false, followGap: 1.5, followTime: 0.3, crossSpeed: Infinity, splitSpeed: kmh(70) },
     },
   },
 
   signals: {
     green: 9,
-    yellow: 2.2,
+    yellow: 3, // o Manual Brasileiro de Sinalização Semafórica recomenda de 3 a 5 s
     allRed: 1,
     offsetStep: 0.618, // defasagem entre nós de ids consecutivos, em fração do ciclo (razão áurea espalha bem)
   },
