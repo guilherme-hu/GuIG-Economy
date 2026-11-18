@@ -304,7 +304,7 @@ const loop = createLoop({
     effects.update(frameDt * loop.timeScale, sim.phase === 'turno');
     const driver = sim.autopilot || pilot.active ? pilot.input : input.state;
     audio.update({ speed: bike.speed, skid: bike.skid, burnout: bike.burnout, throttle: driver.throttle, horn: input.state.horn, riding: sim.phase === 'turno' && running });
-    markers.update(jobs.active?.target, sim.time, sim.phase === 'turno' ? jobs.active?.route : null, view.camera.position);
+    markers.update(jobs.active?.target, sim.time, sim.phase === 'turno' ? jobs.active?.route : null);
     if (sim.phase === 'turno' && !debugMap) {
       hud.update(sim);
       updateWarning();
