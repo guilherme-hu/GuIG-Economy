@@ -6,7 +6,8 @@ import * as THREE from 'three';
 
 const LOOK = { color: 0x06c167, height: 60, radius: 1.6, ring: 4.5, opacity: 0.35 };
 // spacing: m entre setas; turnLook: m antes e depois usados para virar a seta (suaviza as esquinas)
-const ROUTE = { lateral: 1.4, y: 0.6, size: 1.1, thickness: 0.16, spacing: 3.5, speed: 5, opacity: 0.45, turnLook: 1.6, max: 1200 };
+const UP = new THREE.Vector3(0, 1, 0);
+const ROUTE = { lateral: 1.4, y: 0.6, size: 1.1, thickness: 0.05, spacing: 3.5, speed: 5, opacity: 0.45, turnLook: 1.6, max: 1200 };
 
 export function createMarkersView({ scene }) {
   const material = new THREE.MeshBasicMaterial({ color: LOOK.color, transparent: true, opacity: LOOK.opacity, depthWrite: false, fog: false });
@@ -27,7 +28,6 @@ export function createMarkersView({ scene }) {
   const path = createPath();
   const matrix = new THREE.Matrix4();
   const forward = new THREE.Vector3();
-  const face = new THREE.Vector3();
   const side = new THREE.Vector3();
   const here = { x: 0, z: 0 };
   const behind = { x: 0, z: 0 };
@@ -35,27 +35,23 @@ export function createMarkersView({ scene }) {
   let drawn = null;
 
   return {
-    /** `target` é um POI ou `null`; `route` é a rota do GPS (de graph.route) ou `null`; `eye`, a posição da câmera. */
-    update(target, time, route, eye) {
+    /** `target` é um POI ou `null`; `route` é a rota do GPS (de graph.route) ou `null`. */
+    update(target, time, route) {
       marker.visible = !!target;
       arrows.visible = !!route;
       if (route && route !== drawn) {
         drawn = route;
         path.set(route.points);
       }
-      if (route) placeArrows(time, eye);
+      if (route) placeArrows(time);
       if (!target) return;
       marker.position.set(target.x, 0, target.z);
       ring.scale.setScalar(1 + 0.12 * Math.sin(time * 4));
     },
   };
 
-  /**
-   * As setas andam juntas em direção ao destino; cada uma aponta para onde a rota vai logo à frente dela
-   * e gira em torno dessa direção até a face ficar virada para a câmera. Deitadas, as setas de uma esquina
-   * eram vistas de lado e sumiam; assim a curva aparece como um "<" ou ">" de frente.
-   */
-  function placeArrows(time, eye) {
+  /** As setas andam juntas em direção ao destino, deitadas, cada uma apontando para onde a rota vai logo à frente dela. */
+  function placeArrows(time) {
     const shift = (time * ROUTE.speed) % ROUTE.spacing;
     let count = 0;
     for (let d = shift; d < path.length && count < ROUTE.max; d += ROUTE.spacing) {
@@ -63,12 +59,8 @@ export function createMarkersView({ scene }) {
       path.sample(d - ROUTE.turnLook, behind);
       path.sample(d + ROUTE.turnLook, ahead);
       forward.set(ahead.x - behind.x, 0, ahead.z - behind.z).normalize();
-      face.set(eye.x - here.x, eye.y - ROUTE.y, eye.z - here.z).normalize();
-      face.addScaledVector(forward, -face.dot(forward)); // sem a parte ao longo da seta: ela continua apontando para a rota
-      if (face.y < 0.2) face.y = 0.2; // nunca de cabeça para baixo nem em pé de vez
-      face.normalize();
-      side.crossVectors(forward, face);
-      matrix.makeBasis(forward, face, side).setPosition(here.x, ROUTE.y, here.z);
+      side.crossVectors(forward, UP);
+      matrix.makeBasis(forward, UP, side).setPosition(here.x, ROUTE.y, here.z);
       arrows.setMatrixAt(count++, matrix);
     }
     arrows.count = count;
