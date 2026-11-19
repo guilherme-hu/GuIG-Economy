@@ -2,7 +2,7 @@
 
 Jogo 3D de navegador para o trabalho final de Novos Modelos de Negócio. Tema: uberização do trabalho.
 Você é motoboy do app fictício **Rapidão** numa cidade caótica. Design de jogo e marcos: [PLANO.md](PLANO.md).
-Publicado em https://guilherme-hu.github.io/GuIG-Economy/ pela Action `.github/workflows/deploy.yml` a cada merge na `main` (build na branch `gh-pages`); `npm run deploy` faz o mesmo à mão.
+Publicado em https://guilherme-hu.github.io/GuIG-Economy/ com `npm run deploy` (build na branch `gh-pages`), depois do merge na `main`.
 
 ## Stack (não mude sem pedir)
 
