@@ -2,11 +2,10 @@ name: Testar e publicar no GitHub Pages
 
 # O Pages serve a branch gh-pages ("deploy from branch"). Este workflow faz o mesmo que `npm run deploy`:
 # testa, gera dist/ e substitui a gh-pages por um único commit com o build.
-# Por enquanto só manual (aba Actions → Run workflow): a conta está bloqueada por cobrança e todo push na main
-# falhava sem rodar nada. Com a cobrança em dia, volte a incluir:
-#   push:
-#     branches: [main]
+# Roda a cada push na main e também à mão (aba Actions → Run workflow).
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
