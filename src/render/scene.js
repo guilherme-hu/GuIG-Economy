@@ -47,7 +47,7 @@ export function createScene(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap; // PCFSoftShadowMap saiu do three; ele já caía neste
 
   const scene = new THREE.Scene();
   const fog = new THREE.Fog(0, 1, 2);
