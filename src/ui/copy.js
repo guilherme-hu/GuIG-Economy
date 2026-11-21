@@ -260,7 +260,7 @@ export const copy = {
       title: 'Você sofreu um acidente',
       message: 'O Rapidão lamenta o ocorrido e lembra que você não tem vínculo com a plataforma.',
       aside: 'Seu pedido foi repassado a outro parceiro.',
-      reality: 'Fora do jogo, sem vínculo de emprego, ninguém paga o salário de quem se acidenta enquanto ele se recupera. A renda volta quando a moto volta a rodar.',
+      reality: 'Fora do jogo, sem vínculo de emprego não há salário nem estabilidade durante a recuperação: só o seguro que a plataforma decide oferecer, nas regras dela.',
     },
     desativado: {
       tag: 'Conta desativada',
