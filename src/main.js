@@ -148,6 +148,7 @@ const settings = loadSettings();
 const screens = createScreens(ui, {
   onStart: firstShift,
   onResume: resume,
+  onRestart: restartDay,
   onNextDay: () => shift.nextDay(),
   onMenu: () => location.reload(), // recarregar zera a simulação inteira e volta ao menu
   getSettings: () => ({ ...settings, sound: audio.muted ? 'off' : 'on' }),
@@ -191,6 +192,12 @@ function firstShift() {
 function resume() {
   screens.hide();
   loop.timeScale = 1;
+}
+/** Da pausa: o dia recomeça na porta de casa, com a economia de antes dele. */
+function restartDay() {
+  phone.close();
+  resume();
+  shift.restartDay();
 }
 input.onAction((action) => {
   if (action === 'mute') {
