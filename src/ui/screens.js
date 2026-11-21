@@ -97,7 +97,7 @@ const template = `
           <small>${s.net}</small><strong class="num" data-ref="st_net"></strong>
           <small><span data-ref="st_deliveries"></span> · <span data-ref="st_late"></span><span data-ref="st_hoursRow"> · <span data-ref="st_hours"></span></span></small>
         </div>
-        <div class="statement__hour" data-ref="st_hourBox"><small>${s.perHourLabel}</small><strong class="num" data-ref="st_perHour"></strong></div>
+        <div class="statement__hour" data-ref="st_hourBox"><small>${s.perHourLabel}</small><strong class="num" data-ref="st_perHour"></strong><small class="statement__compare" data-ref="st_minWage"></small></div>
       </div>
       <dl class="statement__rows">
         <div><dt>${s.rows.gross}</dt><dd class="num" data-ref="st_gross"></dd></div>
@@ -106,6 +106,7 @@ const template = `
         <div data-sign="minus"><dt>${s.rows.rent}</dt><dd class="num" data-ref="st_rent"></dd></div>
         <div data-sign="minus"><dt>${s.rows.fines}</dt><dd class="num" data-ref="st_fines"></dd></div>
       </dl>
+      <p class="statement__real" data-ref="st_realFines" hidden></p>
       <div class="statement__bills" data-ref="st_bills">
         <div class="statement__bills-head"><b>${s.billsTitle} · <span class="num" data-ref="st_billsValue"></span></b><span class="chip" data-ref="st_billsTag"></span></div>
         <div class="bar"><i data-ref="st_billsBar"></i></div>
@@ -130,6 +131,7 @@ const template = `
       <div class="over__body">
         <p data-ref="over_message"></p>
         <p class="over__aside" data-ref="over_aside"></p>
+        <p class="over__reality" data-ref="over_reality"></p>
         <dl class="over__stats">
           ${statRow('calendar', g.stats.days, 'over_days')}
           ${statRow('offers', g.stats.deliveries, 'over_deliveries')}
@@ -155,7 +157,8 @@ const template = `
   </section>
 </div>`;
 
-export function createScreens(root, callbacks = {}) {
+/** `reality`: valores de fora do jogo para comparar (config.reality). */
+export function createScreens(root, callbacks = {}, reality = null) {
   const node = mount(root, template);
   const r = refs(node);
   let current = null;
@@ -182,7 +185,7 @@ export function createScreens(root, callbacks = {}) {
     }
   }
 
-  function fillStatement({ day = 1, statement = {}, bills = 0, metBills } = {}) {
+  function fillStatement({ day = 1, statement = {}, bills = 0, metBills, realFines = 0 } = {}) {
     const { gross = 0, tips = 0, fuel = 0, rent = 0, fines = 0 } = statement;
     const net = statement.net ?? gross + tips - fuel - rent - fines;
     const perHour = statement.perHour ?? 0;
@@ -211,6 +214,19 @@ export function createScreens(root, callbacks = {}) {
     r.st_billsText.textContent = met ? s.billsMet : s.billsMissed;
     setAttr(r.st_bills, 'data-met', met);
     setAttr(r.st_warning, 'hidden', met);
+    compareWithReality(perHour, realFines);
+  }
+
+  /** Salário mínimo por hora ao lado do líquido por hora e, se houve multa, quanto ela custaria de verdade. */
+  function compareWithReality(perHour, realFines) {
+    setAttr(r.st_minWage, 'hidden', !reality);
+    setAttr(r.st_realFines, 'hidden', !reality || realFines <= 0);
+    if (!reality) return;
+    const minimumPerHour = reality.minimumWage / reality.monthlyHours;
+    r.st_minWage.textContent = s.minimumWage(minimumPerHour);
+    setAttr(r.st_hourBox, 'data-below-minimum', perHour < minimumPerHour);
+    if (realFines <= 0) return;
+    r.st_realFines.textContent = s.realFines(realFines, Math.max(1, Math.round(realFines / reality.grossPerHour)));
   }
 
   function fillGameOver({ reason = 'acidente', stats = {} } = {}) {
@@ -220,6 +236,8 @@ export function createScreens(root, callbacks = {}) {
     r.over_title.textContent = text.title;
     r.over_message.textContent = text.message;
     r.over_aside.textContent = text.aside;
+    r.over_reality.textContent = reality ? text.reality : '';
+    setAttr(r.over_reality, 'hidden', !reality);
     r.over_days.textContent = fmt.integer(stats.days);
     r.over_deliveries.textContent = fmt.integer(stats.deliveries);
     r.over_earned.textContent = fmt.money(stats.earned);

@@ -132,7 +132,11 @@ function leaveStreet(phase, screen, data) {
   phone.setVisible(false);
   screens.show(screen, data);
 }
-events.on('shift:end', (data) => leaveStreet('extrato', 'extrato', data));
+// Quanto as multas do dia custariam de verdade: o jogo cobra 1/10 (config.rules), o extrato mostra o real.
+let realFinesToday = 0;
+events.on('fine', ({ kind }) => (realFinesToday += config.reality.fines[kind] ?? 0));
+events.on('shift:start', () => (realFinesToday = 0));
+events.on('shift:end', (data) => leaveStreet('extrato', 'extrato', { ...data, realFines: realFinesToday }));
 events.on('game:over', (data) => leaveStreet('fim', 'fim', data));
 events.on('shift:start', () => {
   sim.phase = 'turno';
@@ -158,7 +162,7 @@ const screens = createScreens(ui, {
     saveSettings(settings);
     applySettings();
   },
-});
+}, config.reality);
 hud.setVisible(false);
 phone.setVisible(false);
 if (botProfile) startBot();
