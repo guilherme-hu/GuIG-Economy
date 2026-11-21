@@ -14,10 +14,11 @@ const round2 = (v) => Math.round(v * CENTS) / CENTS;
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 export function createEconomy(cfg, events) {
-  const offers = new Uint8Array(cfg.acceptanceWindow); // janela móvel circular: 1 = aceita
-  let offerCount = 0;
+  // Janela móvel circular (1 = aceita). Começa cheia de aceites, como uma conta que já tem histórico:
+  // vazia, a primeira oferta perdida levava a taxa a 0% e escondia as ofertas boas logo no começo.
+  const offers = new Uint8Array(cfg.acceptanceWindow).fill(1);
   let offerIndex = 0;
-  let acceptedCount = 0;
+  let acceptedCount = offers.length;
 
   const eco = {
     money: cfg.startMoney,
@@ -108,12 +109,11 @@ export function createEconomy(cfg, events) {
 
   /** Oferta recusada ou expirada conta contra; só as últimas `acceptanceWindow` valem. */
   function recordOffer(accepted) {
-    if (offerCount === offers.length) acceptedCount -= offers[offerIndex];
-    else offerCount++;
+    acceptedCount -= offers[offerIndex];
     offers[offerIndex] = accepted ? 1 : 0;
     acceptedCount += offers[offerIndex];
     offerIndex = (offerIndex + 1) % offers.length;
-    eco.acceptance = acceptedCount / offerCount;
+    eco.acceptance = acceptedCount / offers.length;
   }
 
   function statement() {
