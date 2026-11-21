@@ -30,6 +30,7 @@ import { copy } from './ui/copy.js';
 import { createHud } from './ui/hud.js';
 import { createWarning } from './ui/warning.js';
 import { createTutorial } from './ui/tutorial.js';
+import { createIntro } from './ui/intro.js';
 import { createScreens } from './ui/screens.js';
 import { createEffects } from './render/effects.js';
 import { createAudio } from './audio/audio.js';
@@ -93,6 +94,17 @@ const ui = document.getElementById('ui');
 const hud = createHud(ui);
 const warning = createWarning(ui);
 const tutorial = createTutorial(ui);
+const intro = createIntro(ui, {
+  labels: copy.intro,
+  slides: copy.intro.slides({
+    rentPerWeek: config.economy.bikeRentPerDay * 7,
+    minPay: config.jobs.minPay,
+    freeKm: config.jobs.freeKm,
+    payPerKm: config.jobs.payPerKm,
+    bills: config.shift.billsDay1,
+    minRating: config.economy.minRating,
+  }),
+});
 const markers = createMarkersView({ scene: stage.scene });
 const effects = createEffects({ scene: stage.scene, bike });
 const audio = createAudio();
@@ -151,6 +163,7 @@ events.on('shift:start', () => {
 const settings = loadSettings();
 const screens = createScreens(ui, {
   onStart: firstShift,
+  onIntro: reviewIntro,
   onResume: resume,
   onRestart: restartDay,
   onNextDay: () => shift.nextDay(),
@@ -191,7 +204,12 @@ function startBot() {
 /** Primeiro turno: passa pelas instruções (a não ser que o jogador já as tenha dispensado). */
 function firstShift() {
   screens.hide();
-  tutorial.show(() => shift.start());
+  intro.show(() => tutorial.show(() => shift.start()));
+}
+/** Do menu: rever a introdução e voltar ao menu. */
+function reviewIntro() {
+  screens.hide();
+  intro.show(() => screens.show('menu'), { force: true });
 }
 function resume() {
   screens.hide();
