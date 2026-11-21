@@ -353,6 +353,23 @@
   color: var(--red-500);
 }
 
+.statement__totals .statement__compare {
+  font-size: 0.7em;
+  font-weight: 600;
+}
+
+.statement__hour[data-below-minimum] .statement__compare {
+  color: var(--red-500);
+}
+
+.statement__real {
+  margin-top: 0.5em;
+  color: var(--red-500);
+  font-size: 0.8em;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .statement__rows {
   margin-top: 0.7em;
 }
@@ -460,6 +477,16 @@
   margin-top: 0.3em;
   color: var(--text-dim);
   font-size: 0.9em;
+}
+
+.over__body .over__reality {
+  margin-top: 0.7em;
+  padding: 0.7em 0.9em;
+  border-radius: 0.8em;
+  background: var(--ink-800);
+  color: var(--text);
+  font-size: 0.85em;
+  line-height: 1.45;
 }
 
 .over__stats {
