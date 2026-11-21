@@ -46,8 +46,9 @@ export const copy = {
     title: 'Pausado',
     text: 'O turno espera. As contas, não.',
     resume: 'Voltar ao turno',
+    restart: 'Recomeçar o dia',
     toMenu: 'Sair para o menu',
-    toMenuNote: 'O progresso do turno se perde e o jogo recomeça no dia 1.',
+    toMenuNote: 'Recomeçar volta ao início deste dia, com o dinheiro e a nota de antes. Sair para o menu recomeça no dia 1.',
   },
 
   settings: {

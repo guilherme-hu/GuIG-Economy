@@ -39,6 +39,8 @@ export function createEconomy(cfg, events) {
     hidesGoodOffers: () => eco.acceptance < cfg.acceptanceFloor,
     statement,
     endDay,
+    snapshot,
+    restore,
   };
   const { day, career } = eco;
 
@@ -133,6 +135,21 @@ export function createEconomy(cfg, events) {
       cancelled: day.cancelled,
       distanceKm: day.distance / METERS_PER_KM,
     };
+  }
+
+  /** Tudo o que um dia pode mudar, para recomeçá-lo do zero (`restore`). */
+  function snapshot() {
+    return { money: eco.money, rating: eco.rating, acceptance: eco.acceptance, offers: offers.slice(), offerIndex, acceptedCount, day: { ...day }, career: { ...career } };
+  }
+
+  /** Volta ao `snapshot`, sem emitir eventos: quem chama decide o que avisar. */
+  function restore(saved) {
+    Object.assign(eco, { money: saved.money, rating: saved.rating, acceptance: saved.acceptance });
+    offers.set(saved.offers);
+    offerIndex = saved.offerIndex;
+    acceptedCount = saved.acceptedCount;
+    Object.assign(day, saved.day);
+    Object.assign(career, saved.career);
   }
 
   /** Fecha o dia na carreira e devolve o extrato. */
