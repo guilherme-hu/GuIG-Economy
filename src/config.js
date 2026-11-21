@@ -282,4 +282,12 @@ export const config = {
     billsGrowth: 0.03, // as contas apertam a cada dia
     missedDaysToLose: 2,
   },
+
+  // Valores de fora do jogo, para o extrato e o fim de jogo compararem (fontes em docs/valores-e-fontes.md).
+  reality: {
+    fines: { sinal: 293.47, contramao: 293.47, calcada: 880.41 }, // valor real de cada multa do jogo (CTB)
+    grossPerHour: 28, // R$/h bruto médio de um entregador (iFood, 2024): converte multa em horas de trabalho
+    minimumWage: 1518, // salário mínimo de 2025, por mês
+    monthlyHours: 220, // jornada de 44 h semanais
+  },
 };

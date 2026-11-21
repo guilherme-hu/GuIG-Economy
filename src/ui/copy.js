@@ -247,6 +247,8 @@ export const copy = {
     billsMet: 'Aluguel, comida e luz pagos. Amanhã as contas sobem um pouco.',
     billsMissed: 'Aluguel, comida e luz. Amanhã as contas sobem um pouco.',
     evictionWarning: 'Mais um dia sem pagar as contas e você é despejado.',
+    minimumWage: (perHour) => `Salário mínimo: ${money(perHour)}/h`,
+    realFines: (real, hours) => `Fora do jogo, essas multas custariam ${money(real)}, cerca de ${hours === 1 ? '1 hora' : `${hours} horas`} de corridas.`,
     footnote:
       'O Rapidão é uma plataforma de tecnologia. Combustível, aluguel, multas e riscos são de responsabilidade do parceiro.',
     next: 'Começar o próximo dia',
@@ -258,18 +260,21 @@ export const copy = {
       title: 'Você sofreu um acidente',
       message: 'O Rapidão lamenta o ocorrido e lembra que você não tem vínculo com a plataforma.',
       aside: 'Seu pedido foi repassado a outro parceiro.',
+      reality: 'Fora do jogo, sem vínculo de emprego, ninguém paga o salário de quem se acidenta enquanto ele se recupera. A renda volta quando a moto volta a rodar.',
     },
     desativado: {
       tag: 'Conta desativada',
       title: 'Sua conta foi desativada',
       message: 'Sua avaliação ficou abaixo do mínimo de 4,20. A decisão é automática.',
       aside: 'Não cabe recurso.',
+      reality: 'Fora do jogo, bloqueios por nota ou por regra do app costumam ser automáticos, e o entregador quase nunca sabe ao certo o motivo.',
     },
     despejado: {
       tag: 'Despejado',
       title: 'Você foi despejado',
       message: 'Dois dias seguidos sem pagar as contas.',
       aside: 'Parceiros que ficam mais tempo online ganham mais. O aplicativo segue disponível para você.',
+      reality: 'Fora do jogo, para tirar um salário mínimo o entregador precisa de pelo menos uma entrega por hora, por mais de 44 horas na semana (ANPET).',
     },
     stats: {
       days: 'Dias trabalhados',
