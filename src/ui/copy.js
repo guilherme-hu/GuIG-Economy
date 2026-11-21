@@ -279,4 +279,44 @@ export const copy = {
     },
     toMenu: 'Voltar ao menu',
   },
+
+  // Introdução antes do primeiro turno (ui/intro.js). Valores do jogo chegam de config.js por `v`;
+  // os de fora do jogo, com fonte em docs/valores-e-fontes.md, ficam escritos aqui.
+  intro: {
+    skip: 'Pular',
+    next: 'Continuar',
+    done: 'Começar',
+    count: (n, total) => `${n} de ${total}`,
+    review: 'Rever a introdução',
+    slides: (v) => [
+      {
+        title: 'Este é você',
+        text: `Você mora de aluguel, e a moto também é alugada: ${money(v.rentPerWeek)} por semana. O Rapidão é a sua renda principal.`,
+      },
+      {
+        title: 'Como o app paga',
+        text: `${money(v.minPay)} por entrega de até ${v.freeKm} km e ${money(v.payPerKm)} por km a mais. Esperar oferta não paga nada. Ir até o restaurante também não.`,
+      },
+      {
+        title: 'Quanto isso dá',
+        text: 'Fora do jogo, um entregador fatura de R$ 28 a R$ 31 por hora, bruto, em jornadas de menos de 4 horas por dia (Cebrap). Combustível e moto saem desse valor.',
+      },
+      {
+        title: 'O que você precisa',
+        text: `${money(v.bills)} por dia, já descontados os custos: é o salário mínimo líquido dividido por 30. Abaixo disso, o aluguel atrasa.`,
+      },
+      {
+        title: 'O que pode dar errado',
+        text: 'Uma multa por sinal vermelho custa R$ 293,47, cerca de 10 horas de trabalho. No jogo ela vale um décimo disso. Um acidente encerra tudo, e você não tem vínculo com a plataforma.',
+      },
+      {
+        title: 'Por que a pressa',
+        text: `O prazo é curto, a gorjeta depende de chegar antes e a nota cai com cada atraso. Abaixo de ${rating(v.minRating)}, a conta é desativada.`,
+      },
+      {
+        title: 'Seu turno começa agora.',
+        text: 'Fique online, aceite uma corrida e boa entrega.',
+      },
+    ],
+  },
 };

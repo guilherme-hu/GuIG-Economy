@@ -573,6 +573,111 @@
   accent-color: var(--green-500);
 }
 
+/* ───────────── Introdução (balões antes do primeiro turno) ───────────── */
+.intro {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 1.5em 4.5em;
+  background: linear-gradient(0deg, rgb(0 0 0 / 0.6) 0%, rgb(0 0 0 / 0.15) 55%, rgb(0 0 0 / 0) 100%);
+  pointer-events: auto;
+}
+
+.intro[hidden] {
+  display: none;
+}
+
+.intro__card {
+  width: min(36em, 100%);
+  padding: 1.4em 1.7em 1.5em;
+  cursor: pointer;
+}
+
+.intro__card--in {
+  animation: sheet-in var(--slow) var(--ease-out);
+}
+
+.intro__head {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+}
+
+.intro__count {
+  color: var(--text-faint);
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
+.intro__skip {
+  height: 2.2em;
+  margin-left: auto;
+  padding: 0 0.9em;
+  font-size: 0.85em;
+}
+
+.intro h2 {
+  margin-top: 0.9em;
+  font-size: 1.75em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.intro__text {
+  margin-top: 0.5em;
+  color: var(--ink-200);
+  font-size: 1.08em;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.intro__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  margin-top: 1.3em;
+}
+
+.intro__dots {
+  display: flex;
+  gap: 0.35em;
+}
+
+.intro__dots i {
+  width: 1.4em;
+  height: 0.32em;
+  border-radius: var(--r-full);
+  background: var(--ink-700);
+}
+
+.intro__dots i[data-on] {
+  background: var(--green-500);
+}
+
+.menu__review {
+  display: block;
+  margin: 0.8em auto 0;
+  padding: 0.2em 0.4em;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.85em;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.menu__review:hover {
+  color: var(--text);
+}
+
 /* ───────────── Configurações ───────────── */
 .gear {
   display: grid;

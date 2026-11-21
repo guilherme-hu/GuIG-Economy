@@ -62,6 +62,7 @@ const template = `
         <button class="btn btn--brand btn--lg btn--block" type="button" data-action="onStart" data-primary>
           ${copy.menu.start}<span class="kbd">${copy.menu.hint}</span>
         </button>
+        <button class="menu__review" type="button" data-action="onIntro">${copy.intro.review}</button>
       </div>
       <p class="menu__goal"><span>${icons.target}</span>${copy.menu.goal}</p>
     </div>
