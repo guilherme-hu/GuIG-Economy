@@ -141,7 +141,7 @@ test('economy: aceitação reflete a janela móvel', () => {
 
   eco.recordOffer(true);
   eco.recordOffer(false);
-  assert.equal(eco.acceptance, 0.5);
+  assert.equal(eco.acceptance, (n - 1) / n);
 
   for (let i = 0; i < n; i++) eco.recordOffer(false);
   assert.equal(eco.acceptance, 0);
@@ -152,6 +152,25 @@ test('economy: aceitação reflete a janela móvel', () => {
     assert.equal(eco.acceptance, (i + 1) / n); // as recusas antigas saem da janela uma a uma
   }
   assert.equal(eco.hidesGoodOffers(), false);
+});
+
+test('economy: perder uma oferta no começo do dia não esconde as ofertas boas (#26)', () => {
+  const { eco } = setup();
+  eco.recordOffer(false);
+  assert.equal(eco.acceptance, 1 - 1 / cfg.acceptanceWindow);
+  assert.equal(eco.hidesGoodOffers(), false);
+});
+
+test('economy: recusar várias seguidas ainda esconde as ofertas boas', () => {
+  const { eco } = setup();
+  let declined = 0;
+  while (!eco.hidesGoodOffers()) {
+    eco.recordOffer(false);
+    declined++;
+  }
+  // Só some quando as recusas passam do limite dentro da janela inteira.
+  assert.equal(declined, Math.floor(cfg.acceptanceWindow * (1 - cfg.acceptanceFloor)) + 1);
+  assert.ok(declined > 1);
 });
 
 test('economy: eventos saem com os payloads da tabela', () => {
