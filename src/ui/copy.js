@@ -40,6 +40,8 @@ export const copy = {
     start: 'Começar o turno',
     hint: 'Enter',
     goal: 'Entregue no prazo, pague as contas do dia e não perca a conta.',
+    keyboardTitle: 'Este jogo precisa de teclado',
+    keyboardText: 'A moto é pilotada pelas teclas. Abra este link num computador para jogar.',
   },
 
   pause: {
