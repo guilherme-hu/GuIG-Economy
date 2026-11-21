@@ -120,6 +120,7 @@ createEconomy(config.economy, events) → {
   money, rating, acceptance, day: { gross, tips, fuel, rent, fines, deliveries, late },
   payDelivery({pay, tip}), chargeFine(amount, kind), chargeFuel(meters), rate(delta), recordOffer(accepted),
   startDay(), statement() → { gross, tips, fuel, rent, fines, net, perHour, ... },
+  snapshot() → estado, restore(estado),   // tudo o que um dia muda; usado para recomeçar o dia
 }
 
 // sim/jobs.js
@@ -136,6 +137,7 @@ createRules({ city, graph, signals, traffic, bike, economy, events, config: conf
 createShift({ economy, jobs, events, config: config.shift }) → {
   day, timeLeft, bills, missedDays, running,
   start(), step(dt), nextDay() /* ou despejo */, gameOver(reason),   // emite shift:start, shift:end, game:over
+  restartDay(),   // volta a economia a como estava antes do dia em andamento e chama start() de novo
 }
 ```
 
