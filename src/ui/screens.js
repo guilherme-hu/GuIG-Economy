@@ -78,6 +78,7 @@ const template = `
       <button class="btn btn--dark btn--lg btn--block" type="button" data-action="onResume" data-primary>
         ${copy.pause.resume}<span class="kbd">Esc</span>
       </button>
+      <button class="btn btn--ghost btn--lg btn--block" type="button" data-action="onRestart">${copy.pause.restart}</button>
       <button class="btn btn--ghost btn--lg btn--block" type="button" data-action="onMenu">${copy.pause.toMenu}</button>
       <p class="sheet__fine">${copy.pause.toMenuNote}</p>
       <h2>${copy.controls.title}</h2>

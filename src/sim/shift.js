@@ -4,6 +4,7 @@
  * Fins: 'desativado' (nota abaixo do mínimo), 'despejado' (dias seguidos sem pagar as contas), 'acidente' (main.js chama gameOver).
  */
 export function createShift({ economy, jobs, events, config: cfg }) {
+  let dayStart = null; // economia como estava antes do dia em andamento
   const shift = {
     day: 0,
     timeLeft: 0,
@@ -12,6 +13,7 @@ export function createShift({ economy, jobs, events, config: cfg }) {
     running: false,
 
     start() {
+      dayStart = economy.snapshot();
       shift.day++;
       shift.bills = Math.round(cfg.billsDay1 * (1 + cfg.billsGrowth) ** (shift.day - 1) * 100) / 100;
       shift.timeLeft = cfg.duration;
@@ -26,6 +28,15 @@ export function createShift({ economy, jobs, events, config: cfg }) {
       shift.timeLeft = Math.max(0, shift.timeLeft - dt);
       if (economy.isDeactivated()) return shift.gameOver('desativado');
       if (shift.timeLeft === 0 && !jobs.active) endDay();
+    },
+
+    /** Recomeça o dia em andamento: dinheiro, nota e taxa de aceitação voltam a como estavam antes dele. */
+    restartDay() {
+      if (!dayStart) return;
+      economy.restore(dayStart);
+      jobs.active = null;
+      shift.day--;
+      shift.start();
     },
 
     /** Depois do extrato: mais um dia, ou o despejo se as contas atrasaram demais. */

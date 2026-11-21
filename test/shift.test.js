@@ -75,3 +75,45 @@ test('fim: conta desativada quando a nota cai abaixo do mínimo, com o dia em an
   assert.equal(over.stats.deliveries, 1);
   assert.ok(!shift.running);
 });
+
+test('turno: recomeçar o dia volta dinheiro, nota e aceitação ao começo dele (#36)', () => {
+  const { economy, jobs, shift, seen, play } = world();
+  shift.start();
+  play();
+  shift.nextDay(); // dia 2: começa com o que sobrou do dia 1
+  const before = { day: shift.day, money: economy.money, rating: economy.rating, bills: shift.bills };
+
+  economy.payDelivery({ pay: 40, tip: 5 });
+  economy.chargeFine(29.35, 'sinal');
+  economy.rate(-0.3);
+  for (let i = 0; i < 6; i++) economy.recordOffer(false);
+  jobs.active = { offer: {}, phase: 'entrega' };
+  shift.step(30);
+
+  shift.restartDay();
+  assert.equal(shift.day, before.day, 'continua no mesmo dia');
+  assert.equal(shift.bills, before.bills);
+  assert.equal(shift.timeLeft, config.shift.duration);
+  assert.equal(shift.running, true);
+  assert.equal(economy.money, before.money, 'o dinheiro é o do começo do dia (aluguel já cobrado de novo)');
+  assert.equal(economy.rating, before.rating);
+  assert.equal(economy.acceptance, 1);
+  assert.equal(economy.hidesGoodOffers(), false);
+  assert.equal(economy.day.deliveries, 0);
+  assert.equal(economy.day.fines, 0);
+  assert.equal(economy.day.rent, config.economy.bikeRentPerDay, 'o aluguel aparece uma vez só no extrato');
+  assert.equal(jobs.active, null);
+  assert.equal(jobs.offers.length, 0);
+  assert.equal(last(seen, 'shift:start').day, before.day);
+});
+
+test('turno: recomeçar o primeiro dia volta ao dinheiro inicial e não conta dia na carreira', () => {
+  const { economy, shift } = world();
+  shift.start();
+  const money = economy.money;
+  economy.payDelivery({ pay: 20 });
+  shift.restartDay();
+  assert.equal(shift.day, 1);
+  assert.equal(economy.money, money);
+  assert.equal(economy.career.days, 0);
+});

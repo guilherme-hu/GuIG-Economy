@@ -190,3 +190,25 @@ test('economy: eventos saem com os payloads da tabela', () => {
     { type: 'money:changed', money: start - rent - 47.5 - cfg.fuelPerKm, delta: -cfg.fuelPerKm, reason: 'combustivel' },
   ]);
 });
+
+test('economy: restore volta exatamente ao snapshot, inclusive a janela de aceitação', () => {
+  const { eco } = setup();
+  eco.startDay();
+  eco.recordOffer(false);
+  const saved = eco.snapshot();
+  const expected = JSON.stringify({ money: eco.money, rating: eco.rating, acceptance: eco.acceptance, day: eco.day, career: eco.career });
+
+  eco.payDelivery({ pay: 30, tip: 3 });
+  eco.chargeFine(10, 'sinal');
+  for (let i = 0; i < cfg.acceptanceWindow; i++) eco.recordOffer(false);
+  eco.endDay();
+
+  eco.restore(saved);
+  assert.equal(JSON.stringify({ money: eco.money, rating: eco.rating, acceptance: eco.acceptance, day: eco.day, career: eco.career }), expected);
+  // A janela também voltou: aceitar uma oferta agora dá o mesmo que daria antes.
+  const reference = setup().eco;
+  reference.recordOffer(false);
+  reference.recordOffer(true);
+  eco.recordOffer(true);
+  assert.equal(eco.acceptance, reference.acceptance);
+});
