@@ -53,6 +53,7 @@ const template = `
     <div class="menu__main">
       <h1 class="menu__title"><span>G</span>u<span>IG</span> Economy</h1>
       <p class="menu__subtitle">${copy.game.subtitle}</p>
+      <p class="light menu__keyboard" role="note">${icons.info}<span><b>${copy.menu.keyboardTitle}</b>${copy.menu.keyboardText}</span></p>
       <div class="sheet light menu__promo">
         ${wordmark()}
         <h2>${copy.brand.pitchTitle}</h2>

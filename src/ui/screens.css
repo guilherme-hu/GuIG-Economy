@@ -263,6 +263,71 @@
   font-weight: 800;
 }
 
+/* Aviso de teclado: só aparece em tela estreita ou em aparelho só de toque (celular, tablet sem teclado). */
+.menu__keyboard {
+  display: none;
+  gap: 0.7em;
+  align-items: flex-start;
+  margin-top: 1.2em;
+  padding: 0.9em 1em;
+  border-radius: 0.9em;
+  background: #fff;
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.menu__keyboard svg {
+  flex: none;
+  width: 1.4em;
+  height: 1.4em;
+  margin-top: 0.05em;
+}
+
+.menu__keyboard b {
+  display: block;
+  font-weight: 800;
+}
+
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
+  .menu__keyboard {
+    display: flex;
+  }
+}
+
+/* Celular: o menu vira uma coluna que cabe na largura e rola na vertical; a lista de teclas sai. */
+@media (max-width: 760px) {
+  .screen.screen--menu {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 2em 1.4em 2.5em;
+    overflow-y: auto;
+    background: rgb(0 0 0 / 0.7);
+  }
+
+  .menu__main {
+    width: 100%;
+  }
+
+  .menu__title {
+    padding-right: 1.6em; /* a engrenagem fica no canto de cima */
+    font-size: 2.8em;
+    white-space: normal;
+  }
+
+  .menu__promo {
+    padding: 1.4em 1.3em;
+  }
+
+  .menu__promo h2 {
+    font-size: 1.7em;
+  }
+
+  .menu__controls {
+    display: none;
+  }
+}
+
 /* ───────────── Pausa ───────────── */
 .pause {
   width: 28em;
