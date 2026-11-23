@@ -224,7 +224,8 @@ export const config = {
   jobs: {
     offerCount: 3,
     offerLifetime: 12,
-    minPay: 7.5,
+    minPay: 6.5, // o mínimo do iFood; cada pedido soma até minPayJitter disso (média ~R$ 7,50)
+    minPayJitter: 0.3,
     payPerKm: 2.5, // o iFood paga R$ 1,50; usamos os R$ 2,50 reivindicados na greve de 2025, para a longa valer a pena
     freeKm: 4, // km reais cobertos pelo mínimo
     kmScale: 3,

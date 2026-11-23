@@ -64,3 +64,15 @@ test('piloto automático coleta e entrega: dinheiro entra, gorjeta nunca passa d
   assert.ok(tip >= 0 && tip <= pay * config.jobs.maxTipShare + 0.01);
   assert.ok(Math.abs(economy.money - (pay + tip)) < 0.01);
 });
+
+test('ofertas na tela nunca repetem restaurante, e o valor varia mesmo na taxa mínima', () => {
+  const { jobs, bike } = world();
+  const pays = new Set();
+  for (let round = 0; round < 50; round++) {
+    jobs.offers.length = 0;
+    while (jobs.offers.length < config.jobs.offerCount) jobs.step(DT, bike);
+    assert.equal(new Set(jobs.offers.map((o) => o.restaurant)).size, jobs.offers.length);
+    for (const o of jobs.offers) pays.add(o.pay);
+  }
+  assert.ok(pays.size > 100, `só ${pays.size} valores distintos`);
+});
