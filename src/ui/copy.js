@@ -303,7 +303,7 @@ export const copy = {
       },
       {
         title: 'Como o app paga',
-        text: `${money(v.minPay)} por entrega de até ${v.freeKm} km e ${money(v.payPerKm)} por km a mais. Esperar oferta não paga nada. Ir até o restaurante também não.`,
+        text: `A partir de ${money(v.minPay)} por entrega de até ${v.freeKm} km e ${money(v.payPerKm)} por km a mais. Esperar oferta não paga nada. Ir até o restaurante também não.`,
       },
       {
         title: 'Quanto isso dá',

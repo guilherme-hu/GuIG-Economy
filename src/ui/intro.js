@@ -81,9 +81,6 @@ export function createIntro(root, { slides, labels }) {
   });
 
   return {
-    get seen() {
-      return seen();
-    },
     /** Mostra a introdução e chama `done` ao terminar ou pular. Sem `force`, quem já viu segue direto. */
     show(done, { force = false } = {}) {
       if (!force && seen()) return done();
