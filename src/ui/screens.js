@@ -159,7 +159,7 @@ const template = `
 </div>`;
 
 /** `reality`: valores de fora do jogo para comparar (config.reality). */
-export function createScreens(root, callbacks = {}, reality = null) {
+export function createScreens(root, callbacks = {}, reality) {
   const node = mount(root, template);
   const r = refs(node);
   let current = null;
@@ -220,9 +220,7 @@ export function createScreens(root, callbacks = {}, reality = null) {
 
   /** Salário mínimo por hora ao lado do líquido por hora e, se houve multa, quanto ela custaria de verdade. */
   function compareWithReality(perHour, realFines) {
-    setAttr(r.st_minWage, 'hidden', !reality);
-    setAttr(r.st_realFines, 'hidden', !reality || realFines <= 0);
-    if (!reality) return;
+    setAttr(r.st_realFines, 'hidden', realFines <= 0);
     const minimumPerHour = reality.minimumWage / reality.monthlyHours;
     r.st_minWage.textContent = s.minimumWage(minimumPerHour);
     setAttr(r.st_hourBox, 'data-below-minimum', perHour < minimumPerHour);
@@ -237,8 +235,7 @@ export function createScreens(root, callbacks = {}, reality = null) {
     r.over_title.textContent = text.title;
     r.over_message.textContent = text.message;
     r.over_aside.textContent = text.aside;
-    r.over_reality.textContent = reality ? text.reality : '';
-    setAttr(r.over_reality, 'hidden', !reality);
+    r.over_reality.textContent = text.reality;
     r.over_days.textContent = fmt.integer(stats.days);
     r.over_deliveries.textContent = fmt.integer(stats.deliveries);
     r.over_earned.textContent = fmt.money(stats.earned);
