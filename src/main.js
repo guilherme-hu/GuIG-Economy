@@ -44,6 +44,8 @@ const botProfile = config.autopilot.profiles[params.get('bot')] ? params.get('bo
 
 const events = createEvents();
 const rng = createRng(config.seed);
+// A cidade é sempre a mesma; ofertas, trânsito e radares mudam a cada sessão (`?seed=N` repete uma).
+const run = createRng(Number(params.get('seed')) || Date.now());
 const input = createInput();
 
 const city = generateCity(config.city, rng.fork('cidade'));
@@ -53,10 +55,10 @@ const homeDir = city.edges[home.edge].dir;
 const spawn = { ...graph.pointOnEdge(home.edge, home.t, home.side * config.city.street.laneWidth * 0.5), heading: Math.atan2(homeDir.z, homeDir.x) };
 const bike = createBike(config.bike, { city, graph }, spawn);
 const economy = createEconomy(config.economy, events);
-const jobs = createJobs({ city, graph, rng: rng.fork('ofertas'), events, economy, config: config.jobs });
+const jobs = createJobs({ city, graph, rng: run.fork('ofertas'), events, economy, config: config.jobs });
 const signals = createSignals(city, config.signals);
-const traffic = createTraffic({ city, graph, signals, rng: rng.fork('trânsito'), config: config.traffic });
-const rules = createRules({ city, signals, traffic, bike, economy, events, rng: rng.fork('radares'), config: config.rules });
+const traffic = createTraffic({ city, graph, signals, rng: run.fork('trânsito'), config: config.traffic });
+const rules = createRules({ city, signals, traffic, bike, economy, events, rng: run.fork('radares'), config: config.rules });
 const pilotConfig = { ...config.autopilot, ...(botProfile ? config.autopilot.profiles[botProfile] : {}) };
 const pilot = createAutopilot({ city, graph, bike, config: pilotConfig, traffic, signals, cameras: rules.cameras });
 const shift = createShift({ economy, jobs, events, config: config.shift });

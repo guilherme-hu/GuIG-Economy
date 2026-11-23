@@ -170,6 +170,8 @@ A hora do dia segue o turno (`1 − timeLeft / duração`); para ver a noite, `s
 
 `?bot=cauteloso|apressado|kamikaze` (só para testes): o robô joga sozinho, dia após dia, com aquele perfil; `&vel=3` acelera o tempo.
 
+A cidade sai sempre de `config.seed`; ofertas, trânsito e radares usam uma semente nova a cada carga da página. `?seed=N` repete uma sessão.
+
 `node scripts/balance.js [dias] [perfis] [sementes]` simula dias inteiros com trânsito, radares, multas e batidas, para calibrar a economia.
 
 `?debug=mapa` abre a vista aérea com arrastar e zoom; `&cam=x,z,distância,inclinação,giro` (graus) fixa a câmera para screenshots.

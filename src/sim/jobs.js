@@ -60,7 +60,10 @@ export function createJobs({ city, graph, rng, events, economy, config }) {
 
   function makeOffer(bike) {
     const band = pickBand();
-    const restaurant = rng.pick(nearest(restaurants, bike, config.restaurantChoices));
+    // Restaurantes que já estão na tela ficam de fora: três ofertas do mesmo lugar não dão escolha nenhuma.
+    const offered = new Set(jobs.offers.map((o) => o.restaurant));
+    const fresh = restaurants.filter((poi) => !offered.has(poi));
+    const restaurant = rng.pick(nearest(fresh.length ? fresh : restaurants, bike, config.restaurantChoices));
     const { customer, leg } = customerFor(restaurant, band);
     const distance = graph.route(bike.road, restaurant).length + leg;
     // Tarifa dinâmica de vez em quando, e só para quem aceita quase tudo: aceitação baixa, o app esconde as boas.
@@ -74,7 +77,8 @@ export function createJobs({ city, graph, rng, events, economy, config }) {
       distance, // o que se vai rodar: até o restaurante + até o cliente
       paidDistance: leg, // o que se recebe: só restaurante → cliente
       surge,
-      pay: round2((config.minPay + config.payPerKm * Math.max(0, realKm - config.freeKm)) * surge),
+      // A taxa mínima varia um pouco por pedido; sem isso quase toda curta e média mostra o mesmo valor.
+      pay: round2((config.minPay * rng.range(1, 1 + config.minPayJitter) + config.payPerKm * Math.max(0, realKm - config.freeKm)) * surge),
       deadline: Math.round(distance / referenceSpeed(distance) + config.deadlineBuffer),
       expiresIn: config.offerLifetime,
     };
@@ -82,10 +86,14 @@ export function createJobs({ city, graph, rng, events, economy, config }) {
 
   const bandOf = (leg) => (config.bands.find((b) => leg <= b.max) ?? config.bands.at(-1)).name;
 
+  /** Sorteia a faixa pelo peso, preferindo as que ainda não estão na tela: curta, média e longa lado a lado. */
   function pickBand() {
-    let roll = rng.next();
-    for (const band of config.bands) if ((roll -= band.share) < 0) return band;
-    return config.bands.at(-1);
+    const shown = new Set(jobs.offers.map((o) => o.band));
+    const missing = config.bands.filter((b) => !shown.has(b.name));
+    const pool = missing.length ? missing : config.bands;
+    let roll = rng.next() * pool.reduce((sum, b) => sum + b.share, 0);
+    for (const band of pool) if ((roll -= band.share) < 0) return band;
+    return pool.at(-1);
   }
 
   /** Os `count` POIs mais perto da moto em linha reta. */
